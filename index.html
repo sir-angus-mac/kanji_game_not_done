@@ -1,0 +1,2957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Kanji Physics Sandbox</title>
+    <link href="jquery.multitouch.css" rel="stylesheet" type="text/css">
+    
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background: #000;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #canvas-parent {
+            width: 100vw;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            width: 100vw !important;
+            height: 100dvh !important;
+            display: block;
+            object-fit: contain;
+            background: #1a1a1a;
+            touch-action: none;
+        }
+
+        /* Retro Windows-Tab container layout wrapper */
+        /* Retro Windows-Tab container layout wrapper */
+        #results-dock {  
+            position: absolute;
+            display: none; 
+            background: #cbd5e1; /* Retro light grey body */
+            border: 3px inset #ffffff; /* Window box beveling */
+            border-radius: 4px;
+            padding: 4px; 
+            box-shadow: 2px 4px 20px rgba(0,0,0,0.6);
+            z-index: 999999; 
+            flex-direction: column; /* Stacks gray title bar on top of lists */
+            align-items: stretch;
+            gap: 4px;
+            box-sizing: border-box;
+            pointer-events: auto !important; 
+            /* Let JavaScript dynamically handle positioning coordinates */
+        } 
+
+        /* Windows Grey Top Header Title bar styling */
+        .dock-title-bar {
+            display: flex;
+            justify-content: flex-end; 
+            align-items: center;
+            background: #475569; /* Sleek slate gray classic title bar background */
+            padding: 4px;
+            height: 26px;
+            box-sizing: border-box;
+            user-select: none;
+            position: relative;
+            z-index: 10;
+        } 
+
+        /* Bottom scroll section container housing character items */
+        .dock-scroll-container {
+            display: flex;
+            gap: 12px; 
+            white-space: nowrap;
+            overflow-x: auto !important; 
+            -webkit-overflow-scrolling: touch;
+            padding: 8px 6px;
+            background: #ffffff; /* Crisp white tray contrast */
+            border: 2px inset #94a3b8;
+            box-sizing: border-box;
+            align-items: center;
+            height: 74px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dock-scroll-container::-webkit-scrollbar {
+            height: 8px !important; 
+            display: block !important; 
+        }
+
+        .dock-scroll-container::-webkit-scrollbar-track {
+            background: #f1f5f9 !important; 
+        }
+
+        .dock-scroll-container::-webkit-scrollbar-thumb {
+            background: #94a3b8 !important; 
+            border-radius: 2px;
+            border: 1px solid #cbd5e1;
+        }  
+
+        /* The retro [X] window close button */
+        .close-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px; 
+            height: 18px; 
+            background: #cbd5e1;
+            color: #000000;
+            border: 2px solid;
+            border-color: #ffffff #7f8c8d #7f8c8d #ffffff; /* Classic button bevel */
+            font-size: 12px;
+            font-family: sans-serif;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            padding: 0;
+            margin: 0;
+            line-height: 1;
+            pointer-events: auto !important;
+        }
+
+        .close-btn:active {
+            border-color: #7f8c8d #ffffff #ffffff #7f8c8d;
+            padding-top: 1px;
+            padding-left: 1px;
+        } 
+
+        /* Beautiful expanded slate-gray buttons */
+        .kanji-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1 0 auto;            
+            min-width: 54px;           
+            height: 54px;              
+            background: #475569;       
+            color: #ffffff;
+            border: 2px solid #94a3b8;
+            border-radius: 4px;
+            font-size: 24px;           
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+
+        .kanji-btn:active {
+            transform: scale(0.92);
+            background: #a855f7;
+            color: #ffffff;
+        } 
+
+        
+        .hidden-canvas-vault {
+            position: absolute;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        } 
+
+        /* Word List Popup UI Overlay - Updated to Light Grey & Bigger Layout */ 
+        #word-popup-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 340px; 
+            max-height: 450px; 
+            background: #e2e8f0; 
+            border: 3px solid #cbd5e1; 
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+            color: #000000; 
+            font-family: "Hiragino Mincho ProN", "MS Mincho", "Yu Mincho", serif; 
+            display: flex; /* Keep flex active so layout calculates properly */
+            flex-direction: column;
+            z-index: 99999; 
+            pointer-events: auto !important; 
+            
+            /* Fade properties */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        #word-popup-header {
+            display: flex;
+            justify-content: center; /* Center header elements */
+            align-items: center;
+            padding: 16px;
+            border-bottom: 2px solid #cbd5e1;
+            position: relative;
+        }
+
+        #word-popup-title {
+            font-size: 26px; /* Bigger beautiful kanji title */
+            font-weight: bold;
+            margin: 0;
+            text-align: center;
+        }
+
+        /* Reposition close button safely so it doesn't break alignment */
+        #word-popup-close {
+            position: absolute;
+            right: 16px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 26px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+
+        #word-popup-close:hover {
+            color: #ef4444;
+        }
+
+        #word-popup-content {
+            padding: 16px;
+            overflow-y: auto; 
+            flex-grow: 1;
+        }
+
+        /* Centered, Bigger, and Black Text Word Elements */
+        .word-item {
+            font-size: 28px; /* Bigger list words */
+            padding: 12px 0;
+            border-bottom: 1px solid #cbd5e1;
+            letter-spacing: 1px;
+            text-align: center; /* Center the words */
+            color: #000000; /* Force words to be black */
+            font-family: "Hiragino Mincho ProN", "MS Mincho", "Yu Mincho", serif; /* Beautiful Kanji Fonts */
+        }
+        
+        /* Inner text link style to only play animations on a precision click */
+        .word-clickable-link {
+            cursor: pointer;
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .word-clickable-link:active {
+            background: rgba(0, 0, 0, 0.1); /* Soft dark flash when clicked */
+        }
+
+        .word-item:last-child {
+            border-bottom: none;
+        }
+
+        .no-words-msg {
+            color: #64748b;
+            font-style: italic;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 18px;
+        } 
+
+        /* Unified Drawing Animation Board UI with Smooth Fade Transitions */
+        #stroke-teaching-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 290px;
+            height: auto;
+            background: #f9f9f9; 
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+            color: #000000;
+            font-family: sans-serif;
+            display: flex;             /* Always flex so formatting evaluates nicely */
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            z-index: 100001; 
+            pointer-events: auto !important;
+            box-sizing: border-box;
+
+            /* Fade properties */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        /* Active class utility state triggers the smooth layout visual fade-in */
+        .ui-popup-active {
+            opacity: 1 !important;
+            visibility: visible !important;
+        } 
+
+        /* White UI Container for Stroke Order Teaching */
+        /* Matched to the drawing animation board background color (#f9f9f9) */
+
+        #stroke-teaching-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* Centered title style for the dynamic numbers */
+        #stroke-teaching-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #000;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        #stroke-teaching-close {
+            background: none;
+            border: none;
+            color: #333;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 4px;
+            display: block; 
+        }
+
+        #stroke-teaching-canvas {
+            background: #f9f9f9;
+            border: 1px dashed #bbb;
+            border-radius: 6px;
+            display: block;
+            width: 100% !important;
+            height: auto !important;
+        }
+
+        #stroke-teaching-controls {
+            width: 100%;
+            display: flex !important;
+            justify-content: space-between;
+            margin-top: 14px;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+
+        /* Circle/Oval shaped buttons with a protruding shadow effect */
+        .teaching-btn {
+            flex: 1;
+            width: 50px;       /* Fixed width for a uniform shape */
+            height: 50px;      /* Fixed height matching width for perfect circles */
+            padding: 0;        /* Clear padding to keep the icon centered */
+            font-size: 20px;   /* Adjusted size so the icons fit nicely */
+            font-weight: bold;
+            border: none;      /* No borders */
+            color: #ffffff;    /* White text/icons */
+            border-radius: 50%; /* Forces a perfect circle (or oval if dimensions change) */
+            cursor: pointer;
+            
+            /* Center the emojis perfectly inside the circle */
+            display: inline-flex !important;
+            justify-content: center;
+            align-items: center;
+            
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.15); /* Protruding shadow */
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        /* Dynamic click effect for shadows */
+        .teaching-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Custom RGB Red for Replay Button */
+        #teaching-btn-replay {
+            background: rgb(232, 109, 109);
+        }
+
+        /* Custom RGB Green for Skip Button */
+        #teaching-btn-next {
+            background: rgb(12, 135, 131);
+        } 
+
+        /* Weblio External Lookup Link Styling - Enhanced for Interactivity */
+        .weblio-link {
+            margin-top: 14px;
+            font-size: 16px; /* Slightly larger for easier tapping */
+            color: #2563eb;
+            text-decoration: underline;
+            font-weight: bold;
+            display: inline-block;
+            cursor: pointer;
+            z-index: 100005; /* Keeps it in front of other elements */
+            pointer-events: auto !important; /* Forces it to receive clicks */
+            padding: 4px 8px;
+        }
+        
+        .weblio-link:hover {
+            color: #1d4ed8;
+        }
+        
+        /* Make the top single kanji look clickable and clear */
+        .kanji-header-clickable {
+            cursor: pointer;
+            transition: transform 0.1s ease, color 0.1s ease;
+            user-select: none;
+            display: inline-block;
+        }
+        .kanji-header-clickable:hover {
+            color: #2563eb; /* Changes color to highlight interactivity */
+        }
+        .kanji-header-clickable:active {
+            transform: scale(0.95);
+        }
+
+        /* Updated stacked layout configuration */
+        .word-item-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .word-yomikata {
+            font-size: 16px; /* Clearly visible underneath */
+            color: #64748b;  /* Slate grey contrast */
+            display: none;   /* Hidden by default */
+            font-family: sans-serif;
+            margin-top: 2px;
+        }
+
+        /* Toggled state via body class */
+        body.show-yomikata .word-yomikata {
+            display: block !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-parent"></div>
+<div id="results-dock"></div>
+<div id="word-popup-overlay">
+    <div id="word-popup-header">
+        <span id="word-popup-title">Words for</span>
+        <button id="word-popup-close" ontouchend="closeWordPopup(); event.preventDefault();" onclick="closeWordPopup()">&times;</button>
+    </div>
+    <div id="word-popup-content"></div>
+</div> 
+
+<div id="stroke-teaching-popup">
+    <div id="stroke-teaching-header" style="margin-bottom: 0;"></div>
+    <canvas id="stroke-teaching-canvas" width="220" height="220"></canvas>
+    <div id="stroke-teaching-controls">
+        <button class="teaching-btn" id="teaching-btn-replay" ontouchend="replayCurrentCharacter(); event.preventDefault();" onclick="replayCurrentCharacter()">⟳</button>
+        <button class="teaching-btn" id="teaching-btn-next" ontouchend="nextCharacterInWord(); event.preventDefault();" onclick="nextCharacterInWord()">▶ ▶</button>
+    </div>
+    <a id="weblio-lookup-btn" class="weblio-link" target="_blank" rel="noopener noreferrer"
+       onclick="window.open(this.href, '_blank'); return false;"
+       ontouchend="window.open(this.href, '_blank'); event.preventDefault(); event.stopPropagation();">weblio.jp</a>
+</div> 
+
+<div class="hidden-canvas-vault">
+    <canvas id="kanji-backend-canvas" width="256" height="256"></canvas>
+</div>
+
+<script src="jquery-1.9.1.min.js"></script>
+<script src="jquery.multitouch.js"></script>
+<script src="jquery.multitouch-draggable.js"></script>
+<script src="jquery.multitouch-gestures.js"></script>
+<script src="p5.js"></script>
+<script src="matter.js"></script> 
+
+<script>
+function getBaseKana(char) {
+    if (!char) return "";
+    
+    // 1. Convert Full-width Katakana to Hiragana using Unicode offset mapping
+    let code = char.charCodeAt(0);
+    if (code >= 0x30A1 && code <= 0x30F6) {
+        char = String.fromCharCode(code - 0x60);
+    }
+
+    // 2. Map small (sutegana) Hiragana to standard large forms
+    const smallToLarge = {
+        'ぁ': 'あ', 'ぃ': 'い', 'ぅ': 'う', 'ぇ': 'え', 'ぉ': 'お',
+        'っ': 'つ',
+        'ゃ': 'や', 'ゅ': 'ゆ', 'ょ': 'よ',
+        'ゎ': 'わ'
+    };
+    
+    let base = smallToLarge[char] || char;
+    
+    // 3. RETURNING THE BASE DIRECTLY (Keeping Dakuten/Handakuten intact)
+    // We remove the .normalize('NFD').replace(...) strip regex lines
+    return base;
+} 
+
+function showWordPopup(kanjiChar) {
+    if (systemSpawnInterval) {
+        clearInterval(systemSpawnInterval);
+        systemSpawnInterval = null;
+    }
+
+    const overlay = document.getElementById('word-popup-overlay');
+    const header = document.getElementById('word-popup-header');
+    const content = document.getElementById('word-popup-content');
+    
+    // Clear header except the close button
+    const closeBtn = document.getElementById('word-popup-close');
+    header.innerHTML = ''; 
+    
+    // Create clickable Kanji title element
+    const titleSpan = document.createElement('span');
+    titleSpan.id = 'word-popup-title';
+    titleSpan.className = 'kanji-header-clickable';
+    titleSpan.innerText = kanjiChar;
+    titleSpan.title = "Click to toggle readings!";
+    
+    // Add Toggle click listener to Title Text 
+    titleSpan.addEventListener('click', () => {
+        document.body.classList.toggle('show-yomikata');
+    });
+
+    // Add Toggle touch listener to Title Text (Mobile/Touchpads)
+    titleSpan.addEventListener('touchend', (e) => {
+        e.preventDefault();  // Stop default tap delay behaviors
+        e.stopPropagation(); // Stop the touch event from bubbling to the canvas underneath
+        document.body.classList.toggle('show-yomikata');
+    });
+    
+    header.appendChild(titleSpan);
+    header.appendChild(closeBtn); // Put the close button back safely
+    
+    content.innerHTML = ''; 
+    
+    const vocabList = kanjiDataDictionary[kanjiChar] || [];
+    
+    if (vocabList.length === 0) {
+        content.innerHTML = `<div class="no-words-msg">No words recorded.</div>`;
+    } else {
+        vocabList.forEach(item => {
+            const displayWord = item[0];
+            const yomikataReading = item[1] || ""; // Grab the reading index from dictionary entry
+            
+            const wordDiv = document.createElement('div');
+            wordDiv.className = 'word-item';
+            
+            // Flex wrapper inside item
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = 'word-item-wrapper';
+            
+            const linkSpan = document.createElement('span');
+            linkSpan.className = 'word-clickable-link';
+            linkSpan.innerText = displayWord;
+            
+            // Interaction animations/draw order link rules
+            linkSpan.addEventListener('click', (e) => {
+                e.stopPropagation();
+                openStrokeTeaching(displayWord);
+            });
+            linkSpan.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openStrokeTeaching(displayWord);
+            });
+
+            // Add the yomikata element directly underneath
+            const readingSpan = document.createElement('span');
+            readingSpan.className = 'word-yomikata';
+            readingSpan.innerText = yomikataReading;
+
+            wrapperDiv.appendChild(linkSpan);
+            wrapperDiv.appendChild(readingSpan);
+            wordDiv.appendChild(wrapperDiv);
+            content.appendChild(wordDiv);
+        });
+    }
+    
+    overlay.style.display = 'flex';
+    overlay.classList.add('ui-popup-active');
+} 
+
+function closeWordPopup() {
+    // Smooth Fade-Out
+    document.getElementById('word-popup-overlay').classList.remove('ui-popup-active');
+
+    if (!systemSpawnInterval) {
+        systemSpawnInterval = setInterval(spawnRandomSystemKanji, 10000);
+    } 
+} 
+
+let systemSpawnInterval = null;
+
+// Stroke Order Animation Orchestrator State Variables
+let teachingWordString = "";
+let teachingCharIndex = 0;
+let teachingAnimationId = null;
+let currentStrokeIndex = 0;
+let currentPointIndex = 0;
+let transitionTimeoutId = null; 
+
+let isCuttingMode = false;
+let cutStartPoint = null;
+let cutEndPoint = null; 
+
+
+
+function openStrokeTeaching(wordString) {
+    if (systemSpawnInterval) {
+        clearInterval(systemSpawnInterval);
+        systemSpawnInterval = null;
+        console.log("[Sandbox Engine] System spawn timer stopped for study session.");
+    }
+
+    // 1. Smoothly fade OUT the underlying word dictionary list UI
+    const wordOverlay = document.getElementById('word-popup-overlay');
+    if (wordOverlay) {
+        wordOverlay.classList.remove('ui-popup-active');
+    }
+
+    teachingWordString = wordString;
+    teachingCharIndex = 0;
+
+    // 2. Smoothly fade IN the drawing animation panel UI
+    const teachingPopup = document.getElementById('stroke-teaching-popup');
+    if (teachingPopup) {
+        teachingPopup.classList.add('ui-popup-active');
+    }
+
+    loadCharacterAnimation();  
+} 
+
+function closeStrokeTeaching() { 
+    // 1. Smoothly fade OUT the drawing animation panel UI
+    const teachingPopup = document.getElementById('stroke-teaching-popup');
+    if (teachingPopup) {
+        teachingPopup.classList.remove('ui-popup-active');
+    }
+    
+    if (teachingAnimationId) {
+        cancelAnimationFrame(teachingAnimationId);
+        teachingAnimationId = null;
+    }
+    if (transitionTimeoutId) {
+        clearTimeout(transitionTimeoutId);
+        transitionTimeoutId = null;
+    }
+
+    // 2. Smoothly bring the word dictionary list UI right back up!
+    const wordOverlay = document.getElementById('word-popup-overlay');
+    if (wordOverlay) {
+        wordOverlay.classList.add('ui-popup-active');
+    }
+    console.log("[Sandbox Engine] Animation closed; returning focus back to open Word List panel.");
+} 
+
+function loadCharacterAnimation() {
+    if (teachingAnimationId) {
+        cancelAnimationFrame(teachingAnimationId);
+        teachingAnimationId = null;
+    }
+    if (transitionTimeoutId) {
+        clearTimeout(transitionTimeoutId);
+        transitionTimeoutId = null;
+    }
+
+    const canvas = document.getElementById('stroke-teaching-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (teachingCharIndex >= teachingWordString.length) {
+        closeStrokeTeaching();
+        return;
+    }
+
+    // Dynamic step counter logic removed from here
+
+    // Dynamically update the Weblio anchor link tag with the current full word context string
+    const weblioBtn = document.getElementById('weblio-lookup-btn');
+    if (weblioBtn) {
+        weblioBtn.href = `https://www.weblio.jp/content/${encodeURIComponent(teachingWordString)}`;
+    }
+
+    const currentChar = teachingWordString[teachingCharIndex];
+    const patternMatch = KanjiCanvas.refPatterns.find(p => p[0] === currentChar);
+    
+    if (!patternMatch || !patternMatch[2] || patternMatch[2].length === 0) {
+        ctx.fillStyle = "#111111";
+        ctx.font = "64px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(currentChar, canvas.width / 2, canvas.height / 2 + 20);
+        
+        transitionTimeoutId = setTimeout(() => {
+            moveToNextCharacterOrClose();
+        }, 800);
+        return;
+    }
+
+    const structuralStrokes = patternMatch[2];
+    currentStrokeIndex = 0;
+    currentPointIndex = 0;
+
+    animateStrokeOrder(ctx, canvas, structuralStrokes);
+}  
+
+function animateStrokeOrder(ctx, canvas, strokes) {
+    let lastTime = 0;
+    const speedDelay = 2; 
+    
+    function step(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const elapsed = timestamp - lastTime;
+
+        if (elapsed > speedDelay) {
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#e5e7eb";
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.moveTo(0, canvas.height / 2); ctx.lineTo(canvas.width / 2, canvas.height / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            for (let i = 0; i < currentStrokeIndex; i++) {
+                ctx.strokeStyle = KanjiCanvas.strokeColors[i % KanjiCanvas.strokeColors.length];
+                ctx.lineWidth = 5;
+                ctx.strokeCap = "round";
+                ctx.strokeJoin = "round";
+                ctx.beginPath();
+                strokes[i].forEach((pt, idx) => {
+                    let tx = (pt[0] / 256) * (canvas.width - 20) + 10;
+                    let ty = (pt[1] / 256) * (canvas.height - 20) + 10;
+                    if (idx === 0) ctx.moveTo(tx, ty);
+                    else ctx.lineTo(tx, ty);
+                });
+                ctx.stroke();
+            }
+
+            if (currentStrokeIndex < strokes.length) {
+                const currentStroke = strokes[currentStrokeIndex];
+                ctx.strokeStyle = KanjiCanvas.strokeColors[currentStrokeIndex % KanjiCanvas.strokeColors.length];
+                ctx.lineWidth = 6;
+                ctx.strokeCap = "round";
+                ctx.strokeJoin = "round";
+                ctx.beginPath();
+
+                for (let j = 0; j <= currentPointIndex; j++) {
+                    let tx = (currentStroke[j][0] / 256) * (canvas.width - 20) + 10;
+                    let ty = (currentStroke[j][1] / 256) * (canvas.height - 20) + 10;
+                    if (j === 0) ctx.moveTo(tx, ty);
+                    else ctx.lineTo(tx, ty);
+                }
+                ctx.stroke();
+
+                currentPointIndex += 3; 
+                if (currentPointIndex >= currentStroke.length) {
+                    currentStrokeIndex++;
+                    currentPointIndex = 0;
+                }
+            } else {
+                cancelAnimationFrame(teachingAnimationId);
+                teachingAnimationId = null;
+
+                transitionTimeoutId = setTimeout(() => {
+                    moveToNextCharacterOrClose();
+                }, 900);
+                return;
+            }
+        }
+        teachingAnimationId = requestAnimationFrame(step);
+    }
+    
+    teachingAnimationId = requestAnimationFrame(step);
+}
+
+function moveToNextCharacterOrClose() {
+    teachingCharIndex++;
+    if (teachingCharIndex >= teachingWordString.length) {
+        closeStrokeTeaching();
+    } else {
+        loadCharacterAnimation();
+    }
+}
+
+function replayCurrentCharacter() {
+    loadCharacterAnimation();
+}
+
+function nextCharacterInWord() {
+    moveToNextCharacterOrClose();
+} 
+
+
+function handleDragMove(currentX, currentY) {
+    if (!selectedBlock || !selectedBlock.body) return;
+
+    // 1. Maintain horizontal movement
+    selectedBlock.dragX(currentX);
+
+    // 2. Calculate the real-time distance between your finger and the moving block
+    // If the finger is higher than the block, body.position.y is greater than currentY,
+    // making deltaY POSITIVE (meaning grow). If the finger goes below, deltaY becomes NEGATIVE.
+    const deltaY = selectedBlock.body.position.y - currentY;
+
+    // Print the live distance to your console
+    console.log("Live distance from block center to cursor Y:", deltaY.toFixed(2) + "px");
+
+    // 3. Scale Sensitivity Setup
+    // Every 200 pixels of distance between your finger and the block shifts the scale by 100%
+    const sensitivity = 200; 
+
+    // The core target scale calculation. 
+    // If your finger is right on the block's center, deltaY is 0, so scale stays 1.0 (original size)
+    let targetScaleValue = 1.0 + (deltaY / sensitivity);
+
+    // Dynamic thresholds to stop it from getting infinitely huge or vanishing
+    const minScaleLimit = 0.2;
+    const maxScaleLimit = 2.5;
+    targetScaleValue = Math.max(minScaleLimit, Math.min(maxScaleLimit, targetScaleValue));
+
+    // 4. Calculate the incremental scale multiplier step needed for Matter.js
+    let currentScale = selectedBlock.blockScale !== undefined ? selectedBlock.blockScale : (selectedBlock.scale || 1.0);
+    
+    if (currentScale !== targetScaleValue) {
+        let incrementalScaleFactor = targetScaleValue / currentScale;
+        
+        // Sync custom p5.js properties
+        if (selectedBlock.blockScale !== undefined) selectedBlock.blockScale = targetScaleValue;
+        if (selectedBlock.scale !== undefined) selectedBlock.scale = targetScaleValue;
+        
+        // Resize visual layout boundaries used by your p5.js drawing loop
+        if (selectedBlock.drawnWidth) selectedBlock.drawnWidth *= incrementalScaleFactor;
+        if (selectedBlock.drawnHeight) selectedBlock.drawnHeight *= incrementalScaleFactor;
+        if (selectedBlock.w) selectedBlock.w *= incrementalScaleFactor;
+        if (selectedBlock.h) selectedBlock.h *= incrementalScaleFactor;
+
+        // Apply physical deformation to the engine collision matrix
+        Matter.Body.scale(selectedBlock.body, incrementalScaleFactor, incrementalScaleFactor);
+    }
+}
+
+// Track the live cursor coordinates globally
+let selectedBlock = null;
+let pointerX = 0;
+let pointerY = 0;
+
+$('#canvas-parent').on('touchstart mousedown', function(e) {
+    const clientX = e.originalEvent.touches ? e.originalEvent.touches[0].clientX : e.clientX;
+    const clientY = e.originalEvent.touches ? e.originalEvent.touches[0].clientY : e.clientY;
+
+    // Find clicked block
+    let clickedBlock = null;
+    for (let i = boxes.length - 1; i >= 0; i--) {
+        if (boxes[i].containsPoint && boxes[i].containsPoint(clientX, clientY)) {
+            clickedBlock = boxes[i];
+            break;
+        }
+    }
+
+    // --- ADD THIS GUARD CLAUSE RIGHT HERE ---
+    if (isCuttingMode) {
+        return false; // Blocks moving/dragging any character block completely!
+    } 
+
+    if (clickedBlock && clickedBlock.isRed) {
+        // 1. Activate cutting mode variable
+        isCuttingMode = true; 
+        console.log("Entered cutting mode!");
+
+        // 2. Safely remove the clicked red block from the world and boxes array
+        if (clickedBlock.body) {
+            Matter.Composite.remove(engine.world, clickedBlock.body);
+        }
+        boxes = boxes.filter(b => b !== clickedBlock);
+
+        // 3. Clear drawing sessions so canvas-drawing drops/stops completely
+        sessionsStrokes = [];
+        KanjiCanvas.erase(BACKEND_ID);
+        
+        return false; // Safely exit early so it doesn't try to drag the block
+    }
+    // ---------------------------------------------------------------
+
+    // Rest of your default dragging mechanism...
+    if (clickedBlock && !clickedBlock.hasLanded) {
+        selectedBlock = clickedBlock; 
+        pointerX = clientX;
+        pointerY = clientY;
+        if (typeof selectedBlock.suspend === 'function') {
+            selectedBlock.suspend();
+        }
+    }
+}); 
+
+// Simply record coordinates when moving—no scaling calculations here!
+$('#canvas-parent').on('touchmove mousemove', function(e) {
+    const clientX = e.originalEvent.touches ? e.originalEvent.touches[0].clientX : e.clientX;
+    const clientY = e.originalEvent.touches ? e.originalEvent.touches[0].clientY : e.clientY;
+
+    // --- HANDLE ACTION WHEN CUTTING MODE IS ACTIVE ---
+    if (isCuttingMode) {
+        if (!cutStartPoint) {
+            cutStartPoint = { x: clientX, y: clientY };
+        }
+        cutEndPoint = { x: clientX, y: clientY };
+
+        // Real-time intersection check while dragging the slash across the screen
+        let slashedBlock = null;
+        for (let i = boxes.length - 1; i >= 0; i--) {
+            let b = boxes[i];
+            // Check if the current mouse coordinate sits inside the block
+            if (b.containsPoint && b.containsPoint(clientX, clientY)) {
+                slashedBlock = b;
+                break;
+            }
+        }
+
+        // If a character block gets slashed!
+        // If a character block gets slashed!
+        if (slashedBlock && !slashedBlock.isTriggeredForExplosion) {
+            slashedBlock.isTriggeredForExplosion = true;
+            slashedBlock.explosionTimerStart = millis();
+            slashedBlock.isSuspended = true;
+            
+            if (slashedBlock.body) {
+                Matter.Body.setVelocity(slashedBlock.body, { x: 0, y: 0 });
+                Matter.Body.setAngularVelocity(slashedBlock.body, 0);
+            }
+
+            // --- GEOMETRIC VECTOR CLIPPING ---
+            // We define a diagonal cutting line: x + y = 256 (Bottom-Left to Top-Right)
+            if (slashedBlock.jsonStrokes) {
+                let newSlicedStrokes = [];
+
+                slashedBlock.jsonStrokes.forEach(strokeObj => {
+                    let points = strokeObj.path || strokeObj;
+                    let isAppended = strokeObj.isAppended || false;
+
+                    if (points.length < 2) {
+                        // Point is too small to slice, just assign it to a side
+                        let pt = points[0];
+                        let side = (pt[0] + pt[1] < 256) ? -1 : 1;
+                        newSlicedStrokes.push({ path: points, splitSide: side, isAppended: isAppended });
+                        return;
+                    }
+
+                    let currentPath = [];
+                    // Check which side of the diagonal the first point starts on
+                    let currentSide = (points[0][0] + points[0][1] < 256) ? -1 : 1;
+                    currentPath.push(points[0]);
+
+                    for (let j = 1; j < points.length; j++) {
+                        let p1 = points[j-1];
+                        let p2 = points[j];
+                        
+                        let side1 = (p1[0] + p1[1] < 256) ? -1 : 1;
+                        let side2 = (p2[0] + p2[1] < 256) ? -1 : 1;
+
+                        if (side1 !== side2) {
+                            // The stroke crossed the diagonal! Calculate the exact intersection pixel.
+                            let dx = p2[0] - p1[0];
+                            let dy = p2[1] - p1[1];
+                            let denominator = dx + dy;
+                            
+                            if (Math.abs(denominator) > 0.001) {
+                                // Linear interpolation to find the crossing point (t)
+                                let t = (256 - p1[0] - p1[1]) / denominator;
+                                let intersectX = p1[0] + (t * dx);
+                                let intersectY = p1[1] + (t * dy);
+                                let intersectPt = [intersectX, intersectY];
+
+                                // 1. Cap off the current stroke at the intersection
+                                currentPath.push(intersectPt);
+                                newSlicedStrokes.push({ path: currentPath, splitSide: currentSide, isAppended: isAppended });
+
+                                // 2. Start a brand new stroke on the other side of the cut
+                                currentPath = [intersectPt, p2];
+                                currentSide = side2;
+                            } else {
+                                currentPath.push(p2);
+                            }
+                        } else {
+                            // Line segment didn't cross the cut, keep building the path
+                            currentPath.push(p2);
+                        }
+                    }
+                    
+                    // Push the final remaining chunk of the stroke
+                    if (currentPath.length > 0) {
+                        newSlicedStrokes.push({ path: currentPath, splitSide: currentSide, isAppended: isAppended });
+                    }
+                });
+
+                // Overwrite the original drawing matrix with our newly multiplied, sliced strokes!
+                slashedBlock.jsonStrokes = newSlicedStrokes;
+            }
+
+            console.log("⏱️ Vector geometries clipped! Drifting halves for 2 seconds...");
+            isCuttingMode = false;
+            cutStartPoint = null;
+            cutEndPoint = null;
+        } 
+
+        return false; // Prevent default drawing actions safely
+    }
+
+    // Your original default block drag/drawing setup remains below...
+    if (selectedBlock) {
+        pointerX = clientX;
+        pointerY = clientY;
+    }
+}); 
+
+$('#canvas-parent').on('touchend mouseup mouseleave', function(e) {
+    // Add this cleanup line right at the top
+    if (isCuttingMode) {
+        cutStartPoint = null;
+        cutEndPoint = null;
+    }
+    
+    if (selectedBlock) {
+        if (typeof selectedBlock.release === 'function') {
+            selectedBlock.release();
+        }
+        selectedBlock = null;
+    }
+});
+
+// ***** Global Pointer Interaction Event Handling Filtering ******* //  
+
+document.addEventListener('touchstart', e => { 
+    if ($(e.target).closest('#results-dock').length > 0 || $(e.target).closest('#word-popup-overlay').length > 0 || $(e.target).closest('#stroke-teaching-popup').length > 0 || $(e.target).closest('#global-abort-btn').length > 0) return;
+    if(e.touches.length > 1) e.preventDefault(); 
+}, { passive: false });
+
+document.addEventListener('touchmove', e => { 
+    if ($(e.target).closest('#results-dock').length > 0 || $(e.target).closest('#word-popup-overlay').length > 0 || $(e.target).closest('#stroke-teaching-popup').length > 0 || $(e.target).closest('#global-abort-btn').length > 0) return;
+    
+    if ($(e.target).closest('#canvas-parent').length > 0) {
+        e.preventDefault();
+    }
+}, { passive: false }); 
+
+// ==========================================
+// 1. KANJI-CANVAS ENGINE LOGIC
+// ==========================================
+
+(function (window, document) {
+  'use strict';
+  
+  window.KanjiCanvas = new Object();
+  KanjiCanvas.refPatterns = [];
+  KanjiCanvas.strokeColors = ['#bf0000', '#bf5600', '#bfac00', '#7cbf00', '#26bf00', '#00bf2f', '#00bf85', '#00a2bf', '#004cbf', '#0900bf', '#5f00bf', '#b500bf', '#bf0072', '#bf001c', '#bf2626', '#bf6b26', '#bfaf26', '#89bf26', '#44bf26', '#26bf4c', '#26bf91', '#26a8bf', '#2663bf', '#2d26bf', '#7226bf', '#b726bf', '#bf2682', '#bf263d', '#bf4c4c', '#bf804c'];
+  
+  KanjiCanvas.init = function (id) {
+    KanjiCanvas["canvas_" + id] = document.getElementById(id);
+    KanjiCanvas["ctx_" + id] = KanjiCanvas["canvas_" + id].getContext("2d");
+    KanjiCanvas["clicked_" + id] = 0;
+    KanjiCanvas["recordedPattern_" + id] = [];
+    KanjiCanvas.erase(id);
+  };
+  
+  KanjiCanvas.erase = function (id) {
+    KanjiCanvas["ctx_" + id].fillStyle = "#ffffff";
+    KanjiCanvas["ctx_" + id].fillRect(0, 0, KanjiCanvas["canvas_" + id].width, KanjiCanvas["canvas_" + id].height);
+    KanjiCanvas["recordedPattern_" + id] = [];
+    KanjiCanvas["clicked_" + id] = 0;
+  };
+  
+  KanjiCanvas.deleteLast = function (id) {
+    if (KanjiCanvas["recordedPattern_" + id].length > 0) {
+      KanjiCanvas["recordedPattern_" + id].pop();
+      KanjiCanvas.redraw(id);
+    }
+  };
+  
+  KanjiCanvas.redraw = function (id) {
+    KanjiCanvas["ctx_" + id].fillStyle = "#ffffff";
+    KanjiCanvas["ctx_" + id].fillRect(0, 0, KanjiCanvas["canvas_" + id].width, KanjiCanvas["canvas_" + id].height);
+    for (var i = 0; i < KanjiCanvas["recordedPattern_" + id].length; i++) {
+      var color = KanjiCanvas.strokeColors[i % KanjiCanvas.strokeColors.length];
+      KanjiCanvas["ctx_" + id].strokeStyle = color;
+      KanjiCanvas["ctx_" + id].lineWidth = 4;
+      KanjiCanvas["ctx_" + id].beginPath();
+      for (var j = 0; j < KanjiCanvas["recordedPattern_" + id][i].length; j++) {
+        if (j == 0) {
+          KanjiCanvas["ctx_" + id].moveTo(KanjiCanvas["recordedPattern_" + id][i][j][0], KanjiCanvas["recordedPattern_" + id][i][j][1]);
+        } else {
+          KanjiCanvas["ctx_" + id].lineTo(KanjiCanvas["recordedPattern_" + id][i][j][0], KanjiCanvas["recordedPattern_" + id][i][j][1]);
+        }
+      }
+      KanjiCanvas["ctx_" + id].stroke();
+    }
+  };
+
+  KanjiCanvas.m10 = function (pattern) {
+		var sum = 0;
+		for(var i=0;i<pattern.length;i++) {
+		    var stroke_i = pattern[i];
+			for(var j=0;j<stroke_i.length;j++) {
+				sum += stroke_i[j][0];
+			}			
+		}
+		return sum;
+	};
+	
+    KanjiCanvas.m01 = function (pattern) {
+		var sum = 0;
+		for(var i=0;i<pattern.length;i++) {
+			var stroke_i = pattern[i];
+			for(var j=0;j<stroke_i.length;j++) {
+				sum += stroke_i[j][1];
+			}			
+		}
+		return sum;
+	};
+		
+    KanjiCanvas.m00 = function (pattern) {
+	    var sum = 0;
+		for(var i=0;i<pattern.length;i++) {
+		   var stroke_i = pattern[i];
+		   sum += stroke_i.length;
+		}
+		return sum;
+	};
+	
+	 KanjiCanvas.mu20 = function (pattern, xc) {
+		var sum = 0;
+		for(var i=0;i<pattern.length;i++) {
+			var stroke_i = pattern[i];
+			for(var j=0;j<stroke_i.length;j++) {
+				var diff = stroke_i[j][0] - xc;
+				sum += (diff * diff);
+			}			
+		}
+		return sum;
+	};
+	
+	 KanjiCanvas.mu02 = function (pattern, yc) {
+		var sum = 0;
+		for(var i=0;i<pattern.length;i++) {
+			var stroke_i = pattern[i];
+			for(var j=0;j<stroke_i.length;j++) {
+				var diff = stroke_i[j][1] - yc;
+				sum += (diff * diff);
+			}			
+		}
+		return sum;
+	};
+   
+   	 KanjiCanvas.aran = function (width, height) {
+		var r1 = 0.;
+		if(height > width) {
+			r1 = width / height;
+		} else {
+			r1 = height / width;
+		}
+		var a = Math.PI / 2.;
+		var b = a * r1;
+		var b1 = Math.sin(b);
+		var c = Math.sqrt(b1);
+		var d = c;
+		var r2 = Math.sqrt(Math.sin((Math.PI/2.) * r1));
+		return r2;
+	}; 
+	
+	 KanjiCanvas.transform = function (pattern, x_, y_) {
+	var pt = new Array();
+		for(var i=0;i<pattern.length;i++) {
+		    var stroke_i = pattern[i];
+			var c_stroke_i = new Array();
+			for(var j=0;j<stroke_i.length;j++) {
+			    var x = stroke_i[j][0]+x_;
+				var y = stroke_i[j][1]+y_;
+				c_stroke_i.push([x,y]);
+			}
+			pt.push(c_stroke_i);
+		}
+		return pt;			
+	};
+
+  KanjiCanvas.momentNormalize = function (id) {
+		KanjiCanvas.newHeight = 256;
+		KanjiCanvas.newWidth = 256;
+		KanjiCanvas.xMin = 256;
+		KanjiCanvas.xMax = 0;
+		KanjiCanvas.yMin = 256;
+		KanjiCanvas.yMax = 0;
+		for(var i = 0;i<KanjiCanvas["recordedPattern_" + id].length;i++) {
+		  var stroke_i = KanjiCanvas["recordedPattern_" + id][i];
+		  for(var j = 0; j<stroke_i.length;j++) {
+			KanjiCanvas.x = stroke_i[j][0];
+			KanjiCanvas.y = stroke_i[j][1];
+			if(KanjiCanvas.x < KanjiCanvas.xMin) {
+			  KanjiCanvas.xMin = KanjiCanvas.x;
+			}
+			if(KanjiCanvas.x > KanjiCanvas.xMax) {
+			  KanjiCanvas.xMax = KanjiCanvas.x;
+			}
+			if(KanjiCanvas.y < KanjiCanvas.yMin) {
+			  KanjiCanvas.yMin = KanjiCanvas.y;
+			}
+			if(KanjiCanvas.y > KanjiCanvas.yMax) {
+			  KanjiCanvas.yMax = KanjiCanvas.y;
+			}
+		  }
+		}	
+		KanjiCanvas.oldHeight = Math.abs(KanjiCanvas.yMax - KanjiCanvas.yMin);
+		KanjiCanvas.oldWidth  = Math.abs(KanjiCanvas.xMax - KanjiCanvas.xMin);
+			
+		var r2 = KanjiCanvas.aran(KanjiCanvas.oldWidth, KanjiCanvas.oldHeight);
+		
+		var aranWidth = KanjiCanvas.newWidth;
+		var aranHeight = KanjiCanvas.newHeight;
+		
+		if(KanjiCanvas.oldHeight > KanjiCanvas.oldWidth) {
+			aranWidth = r2 * KanjiCanvas.newWidth; 
+		} else {
+			aranHeight = r2 * KanjiCanvas.newHeight;
+		}		
+				
+		var xOffset = (KanjiCanvas.newWidth - aranWidth)/2;
+		var yOffset = (KanjiCanvas.newHeight - aranHeight)/2; 
+		
+		var m00_ = KanjiCanvas.m00(KanjiCanvas["recordedPattern_" + id]);
+		var m01_ = KanjiCanvas.m01(KanjiCanvas["recordedPattern_" + id]);
+		var m10_ = KanjiCanvas.m10(KanjiCanvas["recordedPattern_" + id]);
+				
+		var xc_ = (m10_/m00_);
+		var yc_ = (m01_/m00_);
+				
+		var xc_half = aranWidth/2;
+		var yc_half = aranHeight/2;
+		
+		var mu20_ = KanjiCanvas.mu20(KanjiCanvas["recordedPattern_" + id], xc_);
+		var mu02_ = KanjiCanvas.mu02(KanjiCanvas["recordedPattern_" + id], yc_);
+
+		var alpha = (aranWidth) / (4 * Math.sqrt(mu20_/m00_)) || 0;
+		var beta = (aranHeight) / (4 * Math.sqrt(mu02_/m00_)) || 0;
+			
+		var nf = new Array();
+		for(var i=0;i<KanjiCanvas["recordedPattern_" + id].length;i++) {
+			var si = KanjiCanvas["recordedPattern_" + id][i];
+			var nsi = new Array();
+			for(var j=0;j<si.length;j++) {
+				var newX = (alpha * (si[j][0] - xc_) + xc_half);
+				var newY = (beta * (si[j][1] - yc_) + yc_half);
+				nsi.push([newX,newY]);
+			}
+			nf.push(nsi);
+		}
+		return KanjiCanvas.transform(nf, xOffset, yOffset);
+	};
+
+  KanjiCanvas.recognize = function (id) {
+    KanjiCanvas.momentNormalize(id); 
+    var userPattern = KanjiCanvas["recordedPattern_" + id];
+    if (userPattern.length === 0) return [];
+    
+    var scores = [];
+    for (var i = 0; i < KanjiCanvas.refPatterns.length; i++) {
+      var ref = KanjiCanvas.refPatterns[i];
+      var refChar = ref[0];
+      var refStrokes = ref[2];
+      
+      if (Math.abs(userPattern.length - refStrokes.length) > 3) continue;
+      
+      var dist = calcLevensteinDistance(userPattern, refStrokes);
+      scores.push({ char: refChar, score: dist });
+    }
+    
+    scores.sort(function (a, b) { return a.score - b.score; });
+    return scores.map(function (i) { return i.char; });
+  };
+
+  function calcLevensteinDistance(p1, p2) {
+    var m = p1.length; var n = p2.length; var dp = [];
+    for (var i = 0; i <= m; i++) { dp[i] = []; dp[i][0] = i * 1000; }
+    for (var j = 0; j <= n; j++) { dp[0][j] = j * 1000; }
+    for (var i = 1; i <= m; i++) {
+      for (var j = 1; j <= n; j++) {
+        var cost = segmentDistance(p1[i - 1], p2[j - 1]);
+        dp[i][j] = Math.min(dp[i - 1][j] + 1000, dp[i][j - 1] + 1000, dp[i - 1][j - 1] + cost);
+      }
+    }
+    return dp[m][n];
+  }
+
+  function segmentDistance(s1, s2) {
+    if (s1.length === 0 || s2.length === 0) return 1000;
+    var d = 0; var steps = Math.max(s1.length, s2.length);
+    for (var i = 0; i < steps; i++) {
+      var idx1 = Math.floor((i / steps) * s1.length);
+      var idx2 = Math.floor((i / steps) * s2.length);
+      var pt1 = s1[idx1]; var pt2 = s2[idx2];
+      d += Math.sqrt(Math.pow(pt1[0] - pt2[0], 2) + Math.pow(pt1[1] - pt2[1], 2));
+    }
+    return d / steps;
+  }
+})(window, document);
+
+// ==========================================
+// 2. GROUND OBJECT FRAMEWORK
+// ==========================================
+class Ground {
+  constructor(x, y, w, h) {
+    this.w = w; this.h = h;
+    this.body = Matter.Bodies.rectangle(x, y, this.w, this.h, {isStatic: true});
+    Matter.Composite.add(engine.world, this.body);
+  }
+  display() {
+    push();
+    rectMode(CENTER);
+    noFill(); noStroke();
+    translate(this.body.position.x, this.body.position.y);
+    rect(0, 0, this.w, this.h);
+    pop();
+  }
+}
+
+// ==========================================
+// 3. PHYSICAL RECT (KANJI BOX WITH EMBEDDED STROKES)
+// ==========================================
+function convexHull(points) {
+  points = points.map(p => ({x: p[0], y: p[1]}));
+  points.sort((a, b) => a.x === b.x ? a.y - b.y : a.x - b.x);
+
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+  const lower = [];
+  for (let p of points) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+
+  const upper = [];
+  for (let i = points.length - 1; i >= 0; i--) {
+    let p = points[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+
+  upper.pop(); lower.pop();
+  return lower.concat(upper);
+}
+
+class SlashedPiece {
+    constructor(x, y, singleStrokeObj, angle, parentWidth, parentHeight, parentScale) {
+        this.strokeObj = singleStrokeObj; 
+        this.drawnWidth = parentWidth;
+        this.drawnHeight = parentHeight;
+        this.scale = parentScale;
+        this.spawnTime = millis(); 
+
+        // Extract raw points array from layout properties
+        let points = this.strokeObj.path || this.strokeObj;
+        
+        // --- 1. CALCULATE LOCAL STROKE MIDPOINT CENTROID ---
+        let totalLocalX = 0;
+        let totalLocalY = 0;
+        let count = points.length;
+
+        points.forEach(vertexPoint => {
+            let lx = (vertexPoint[0] - 128) * (this.drawnWidth / 256) * 1.6;
+            let ly = (vertexPoint[1] - 128) * (this.drawnHeight / 256);
+            totalLocalX += lx;
+            totalLocalY += ly;
+        });
+
+        this.centerXOffset = count > 0 ? totalLocalX / count : 0;
+        this.centerYOffset = count > 0 ? totalLocalY / count : 0;
+
+        let cosA = cos(angle);
+        let sinA = sin(angle);
+        let worldXOffset = this.centerXOffset * cosA - this.centerYOffset * sinA;
+        let worldYOffset = this.centerXOffset * sinA + this.centerYOffset * cosA;
+
+        // --- 2. CREATE A TINY CIRCLULAR PHYSICAL BODY ---
+        let spawnX = x + worldXOffset;
+        let spawnY = y + worldYOffset;
+        let circleRadius = 10 * (this.scale || 1.0);
+
+        this.body = Matter.Bodies.circle(spawnX, spawnY, circleRadius, {
+            frictionAir: 0.02, // Loosened up slightly so they glide a bit further
+            restitution: 0.6,   // Just enough bounce to react sharply to impacts
+            angle: angle
+        });
+        
+        // --- 3. THE "GOLDILOCKS" EXPLOSION BLAST ---
+        // Tuned to 0.09 for a punchy, satisfying pop
+        let forceMagnitude = 0.09 * this.body.mass; 
+        let angleDir = random(TWO_PI);
+        Matter.Body.applyForce(this.body, this.body.position, {
+            x: cos(angleDir) * forceMagnitude,
+            y: sin(angleDir) * forceMagnitude
+        });
+        
+        // Moderate spinning speeds for an active, tumbling look
+        Matter.Body.setAngularVelocity(this.body, random(-0.35, 0.35));
+        
+        Matter.Composite.add(engine.world, this.body);
+    }
+
+    display() {
+        if (!this.body) return;
+        
+        push();
+        translate(this.body.position.x, this.body.position.y);
+        rotate(this.body.angle);
+        
+        stroke(0, 0, 0);  
+        strokeWeight(4); 
+        noFill();
+        
+        let points = this.strokeObj.path || this.strokeObj; 
+        if (Array.isArray(points)) {
+            beginShape();
+            points.forEach(vertexPoint => {
+                let localX = (vertexPoint[0] - 128) * (this.drawnWidth / 256) * 1.6;
+                let localY = (vertexPoint[1] - 128) * (this.drawnHeight / 256);
+                vertex(localX - this.centerXOffset, localY - this.centerYOffset);
+            });
+            endShape();
+        }
+        pop();
+    }
+}  
+
+class Rect {
+  constructor(x, y, playerStrokes, characterString, jsonStrokes, scale, isSystemSpawn = false) {
+    this.img = characterString;
+    this.displayText = characterString; 
+    this.jsonStrokes = jsonStrokes;
+    this.scale = scale; 
+    this.isSuspended = false; 
+    this.hasLanded = false; 
+    this.isSystemSpawn = isSystemSpawn; 
+    this.isRed = false; // <-- ADD THIS FLAG HERE
+    this.isTriggeredForExplosion = false;
+
+    // Add these near the top of your constructor:
+    this.readingTargetString = null; // Will hold the target kana string, e.g., "りゅう"
+    this.readingProgressIndex = 0;   // Keeps track of which index we need next
+    this.isReadingMode = false;      // True when it turns grey 
+
+    let allPoints = playerStrokes.flat();
+    if (allPoints.length === 0) return;
+
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    allPoints.forEach(pt => {
+      if (pt[0] < minX) minX = pt[0]; if (pt[0] > maxX) maxX = pt[0];
+      if (pt[1] < minY) minY = pt[1]; if (pt[1] > maxY) maxY = pt[1];
+    });
+
+    this.drawnWidth = Math.max(maxX - minX, 40);
+    this.drawnHeight = Math.max(maxY - minY, 40);
+    this.internalStrokeRotation = Math.atan2(maxY - minY, maxX - minX) - Math.PI / 4;
+
+    this.verticalSuspensionOffset = 0;
+
+    let hull = convexHull(allPoints);
+    let cx = hull.reduce((s, p) => s + p.x, 0) / hull.length;
+    let cy = hull.reduce((s, p) => s + p.y, 0) / hull.length;
+
+    let hMinX = Infinity, hMaxX = -Infinity;
+    let hMaxY = -Infinity, hMinY = Infinity;
+    hull.forEach(p => {
+      if (p.x < hMinX) hMinX = p.x; if (p.x > hMaxX) hMaxX = p.x;
+      if (p.y < hMinY) hMinY = p.y; if (p.y > hMaxY) hMaxY = p.y;
+    });
+    let hullW = hMaxX - hMinX;
+    let hullH = hMaxY - hMinY;
+
+    let autoShrinkX = hullW > 0 ? (this.drawnWidth / hullW) * 0.88 : 1;
+    let autoShrinkY = hullH > 0 ? (this.drawnHeight / hullH) * 0.88 : 1;
+    let masterTightFitScale = Math.min(autoShrinkX, autoShrinkY);
+
+    let verts = hull.map(p => ({
+      x: (p.x - cx) * masterTightFitScale,
+      y: (p.y - cy) * masterTightFitScale
+    }));
+
+    this.body = Matter.Bodies.fromVertices(x, y, verts, {
+      friction: 0.8,
+      restitution: 0.2
+    }, true);
+
+    Matter.Composite.add(engine.world, this.body);
+  }
+
+  containsPoint(px, py) {
+    return Matter.Vertices.contains(this.body.vertices, { x: px, y: py });
+  }
+
+  suspend() {
+    if (this.hasLanded) return;
+    if (this.isSuspended) return;
+    
+    this.isSuspended = true;
+    let targetSuspensionY = this.body.position.y + this.verticalSuspensionOffset;
+    Matter.Body.setPosition(this.body, { x: this.body.position.x, y: targetSuspensionY });
+    Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+    Matter.Body.setAngularVelocity(this.body, 0);
+    Matter.Body.setAngle(this.body, 0); 
+  }
+
+  release() {
+    this.isSuspended = false;
+    Matter.Sleeping.set(this.body, false);
+  }
+
+  dragX(targetX) {
+    if (this.hasLanded) return;
+    let clampedX = Math.max(30, Math.min(targetX, windowWidth - 30));
+    Matter.Body.setPosition(this.body, { x: clampedX, y: this.body.position.y });
+    Matter.Body.setVelocity(this.body, { x: 0, y: 0 });
+    Matter.Body.setAngularVelocity(this.body, 0); 
+
+    if (this.body) {
+        Matter.Body.setPosition(this.body, { x: targetX, y: this.body.position.y });
+    }
+  }
+
+  scaleBody(scaleMultiplier) {
+        if (!this.body) return;
+
+        // 1. Establish absolute scale boundaries
+        const minScaleLimit = 0.4;
+        const maxScaleLimit = 2.5;
+
+        // Support whichever property name your code uses (blockScale vs scale)
+        let currentScale = this.blockScale !== undefined ? this.blockScale : (this.scale || 1.0);
+        let projectedScale = currentScale * scaleMultiplier;
+
+        // 2. Only perform scaling operations if it fits within safe limits
+        if (projectedScale >= minScaleLimit && projectedScale <= maxScaleLimit) {
+            
+            // Sync up all potential rendering metric properties used by your draw routine
+            if (this.blockScale !== undefined) this.blockScale = projectedScale;
+            if (this.scale !== undefined) this.scale = projectedScale;
+            
+            // Scale dimensional bounds if tracked
+            if (this.drawnWidth) this.drawnWidth *= scaleMultiplier;
+            if (this.drawnHeight) this.drawnHeight *= scaleMultiplier;
+            if (this.w) this.w *= scaleMultiplier;
+            if (this.h) this.h *= scaleMultiplier;
+
+            // 3. Scale the underlying Matter.js physics engine structural vertices
+            Matter.Body.scale(this.body, scaleMultiplier, scaleMultiplier);
+        }
+    }
+
+  display() { 
+        let pos = this.body.position;
+        let angle = this.body.angle;
+
+        // 1. Render Hull Perimeter Outline Wireframe
+        // Only draw this perimeter wireframe box if the object is NOT preparing to explode!
+
+        let makeBoundingBoxesVisible = false; // *** Trigger for DEBUGGING!!!! 
+
+        if (!this.isTriggeredForExplosion && makeBoundingBoxesVisible) {
+            push();
+            if (this.isRed) {
+                this.displayText = "斬";
+                fill(255, 0, 0); // Bright Red 
+                stroke(255, 0, 0);
+            } else if (this.isSystemSpawn) {
+                stroke(60, 60, 60); 
+            } else {
+                stroke(168, 85, 247);  
+            }
+            strokeWeight(2);
+            noFill();
+            beginShape();
+            this.body.vertices.forEach(v => { vertex(v.x, v.y); });
+            endShape(CLOSE);
+            pop();
+        }
+
+        // 2. Render Suspension Guide
+        // --- FIX: Prevent the horizontal guide line from drawing when the character is slashed/exploding! ---
+        if (this.isSuspended && !this.isTriggeredForExplosion) {
+        push();
+        stroke(255, 255, 255, 140); 
+        strokeWeight(2);
+        drawingContext.setLineDash([6, 6]); 
+        line(0, pos.y, windowWidth, pos.y);
+        pop();
+        }
+
+        if (!this.hasLanded && pos.y + (this.drawnHeight / 2) >= (windowHeight - 35)) {
+            this.hasLanded = true;
+        }
+
+        // 3. Render Canvas Vector Font Glyphs
+        push();
+        translate(pos.x, pos.y);
+        rotate(angle);
+        rotate(this.internalStrokeRotation); 
+
+        strokeWeight(10); 
+        strokeCap(ROUND);
+        strokeJoin(ROUND);
+        noFill();
+
+        const totalChars = this.img.length;
+        let xScaleMultiplier = 1.6;
+
+        if (totalChars <= 1) {
+            // --- Single Character Layout --- 
+            this.jsonStrokes.forEach(strokeObj => {
+                let points = strokeObj.path || strokeObj;
+                if (!Array.isArray(points)) return;
+
+                if (this.isTriggeredForExplosion) {
+                    stroke(255, 255, 255); // Keep it white during the 1-second countdown delay
+                } else if (this.isRed) {
+                    stroke(255, 0, 0);
+                } else if (strokeObj.isAppended) {
+                    stroke(120, 120, 120); 
+                } else if (this.isSystemSpawn) {
+                    stroke(0); 
+                } else {
+                    stroke(255); 
+                }
+
+                // 1. Add this near the top of display(), before the beginShape loops:
+                let splitDrift = 0; 
+                if (this.isTriggeredForExplosion) {
+                    let elapsed = millis() - this.explosionTimerStart;
+                    // Pushes them up to 35 pixels apart smoothly over the 2000ms duration
+                    splitDrift = map(min(elapsed, 2000), 0, 2000, 0, 35); 
+                }
+
+                // 2. Inside BOTH of your character drawing loops (single and multi-char), 
+                // update the vertex() logic to apply the drift:
+                beginShape();
+                points.forEach(vertexPoint => {
+                    // Your existing baseline layout math
+                    let localX = (vertexPoint[0] - 128) * (this.drawnWidth / 256) * xScaleMultiplier;
+                    let localY = (vertexPoint[1] - 128) * (this.drawnHeight / 256);
+                    
+                    // Multi-char layout shift (keep this if you are inside the multi-char loop)
+                    // localX += horizontalShiftX; 
+
+                    // --- NEW: Apply the drift based on the stroke's assigned half ---
+                    if (this.isTriggeredForExplosion) {
+                        let direction = strokeObj.splitSide || 1;
+                        localX += splitDrift * direction;
+                        localY += splitDrift * direction;
+                    }
+
+                    vertex(localX, localY);
+                });
+                endShape();
+            });
+        } else {
+            // --- Multi-character Word Spacing Layout (Fused Compound Words) ---
+            const targetCharBoxWidth = this.drawnWidth / totalChars;
+            for (let c = 0; c < totalChars; c++) {
+                const currentChar = this.img[c];
+                const patternMatch = KanjiCanvas.refPatterns.find(p => p[0] === currentChar);
+                const glyphStrokes = patternMatch ? patternMatch[2] : null;
+
+                if (glyphStrokes) {
+                    let horizontalShiftX = (-this.drawnWidth / 2) + (targetCharBoxWidth * c) + (targetCharBoxWidth / 2);
+                    
+                    glyphStrokes.forEach(strokeObj => {
+                        let points = strokeObj.path || strokeObj;
+                        if (!Array.isArray(points)) return;
+
+                        if (this.isTriggeredForExplosion) {
+                            stroke(255, 255, 255);
+                        } else if (strokeObj.isAppended) {
+                            stroke(120, 120, 120);
+                        } else {
+                            stroke(this.isSystemSpawn ? 0 : 255); 
+                        }
+
+                        beginShape();
+                        points.forEach(vertexPoint => {
+                            let localX = horizontalShiftX + (vertexPoint[0] - 128) * (targetCharBoxWidth / 256) * xScaleMultiplier;
+                            let localY = (vertexPoint[1] - 128) * (this.drawnHeight / 256);
+                            vertex(localX, localY);
+                        });
+                        endShape();
+                    });
+                }
+            }
+        }
+        pop(); 
+    }
+} 
+
+// ==========================================
+// 4. MAIN SKETCH ENVIRONMENT
+// ==========================================
+const { Engine, World, Bodies, Composite } = Matter;
+
+let engine; let world; let boxes = []; let ground; let slashedPieces = []; let smokeParticles = [];
+let leftWall;
+let rightWall;
+let wallThickness = 5;          // Exact 5px visual width
+let physicalThickness = 200;    // Deep physical barrier
+const JSON_FILES = ["patterns_1.json", "patterns_2.json", "patterns_3.json", "patterns_4.json", "patterns_5.json"];
+const BACKEND_ID = 'kanji-backend-canvas';
+
+let sessionsStrokes = [];      
+let currentStrokePoints = [];  
+let activeSuspendedBlock = null; 
+let kanjiDataDictionary = {}; 
+let consecutiveNoWordsCount = 0; // NEW: Tracks kanjis spawned without compound words
+
+let holdTimer = null;
+let holdsSystemBlock = null;
+
+class SmokeParticle {
+    constructor(x, y, col, parentScale) {
+        this.x = x + random(-20, 20); // Wider horizontal starting spread
+        this.y = y + random(-5, 5);
+        
+        this.vx = random(-1.5, 1.5);  // More horizontal drift
+        this.vy = random(-1, -2);   
+        
+        this.life = 200;              
+        this.color = col;
+        
+        // Base sizes
+        this.sizeW = random(40, 70) * parentScale; // Initial Width
+        this.sizeH = random(20, 40) * parentScale; // Initial Height
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= 4;
+        
+        // Expand width faster than height to create a "wider" smoke puff
+        this.sizeW += 2.0; 
+        this.sizeH += 0.8; 
+    }
+
+    display() {
+        push();
+        noStroke();
+        fill(this.color[0], this.color[1], this.color[2], this.life);
+        
+        // Use ellipse to draw the smoke wider than it is tall
+        ellipse(this.x, this.y, this.sizeW, this.sizeH);
+        pop();
+    }
+} 
+
+function isPureKana(text) {
+    for (let i = 0; i < text.length; i++) {
+        const cp = text.charCodeAt(i);
+        if (!((cp >= 0x3040 && cp <= 0x309F) || (cp >= 0x30A0 && cp <= 0x30FF))) {
+            return false;
+        }
+    }
+    return true; 
+}
+
+async function fetchAndStoreKanjiData(charInput) {
+    // 1. Initialize if it doesn't exist yet
+    if (!kanjiDataDictionary[charInput]) {
+        kanjiDataDictionary[charInput] = [];
+    }
+
+    // 2. Prevent duplicate API calls using a custom flag (so we don't block the initial fetch!)
+    if (kanjiDataDictionary[charInput].wordsFetched) return;
+
+    const apiUrl = `https://kanjiapi.dev/v1/words/${encodeURIComponent(charInput)}`;
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        const uniqueCheck = new Set(); 
+        
+        // Pre-fill the unique check with the existing base readings from the /v1/kanji/ endpoint
+        kanjiDataDictionary[charInput].forEach(item => {
+            uniqueCheck.add(`${item[0]}_${item[1]}`);
+        });
+
+        const newWords = [];
+
+        if (data && data.length > 0) {
+            data.forEach(item => {
+                const variants = item.variants || [];
+                variants.forEach(option => {
+                    const word = option.written;
+                    const reading = option.pronounced;
+
+                    if (!word || word === charInput) {
+                        if (!uniqueCheck.has(`${reading}_`)) {
+                            uniqueCheck.add(`${reading}_`);
+                            newWords.push([reading, ""]);
+                        }
+                    } else {
+                        if (!word.includes(charInput)) return;
+                        if (word.length <= 1) return;
+                        if (word.length > 5) return; 
+                        if (isPureKana(word)) return;
+
+                        const uniqueKey = `${word}_${reading}`;
+                        if (!uniqueCheck.has(uniqueKey)) {
+                            uniqueCheck.add(uniqueKey);
+                            newWords.push([word, reading]);
+                        }
+                    } 
+                });
+            });
+        }
+
+        // Combine the existing /kanji readings with the newly fetched /words
+        const combinedList = [...kanjiDataDictionary[charInput], ...newWords];
+
+        // Bubble up Hiragana-only readings to the top
+        combinedList.sort((a, b) => {
+            const aIsHiraganaOnly = isPureKana(a[0]);
+            const bIsHiraganaOnly = isPureKana(b[0]);
+
+            if (aIsHiraganaOnly && !bIsHiraganaOnly) return -1;
+            if (!aIsHiraganaOnly && bIsHiraganaOnly) return 1;
+            return 0;
+        });
+
+        // Save the combined list and flag it as fully fetched
+        kanjiDataDictionary[charInput] = combinedList;
+        kanjiDataDictionary[charInput].wordsFetched = true; 
+
+        console.log(`Saved sorted dictionary data for '${charInput}':`, kanjiDataDictionary[charInput]);
+
+    } catch (error) {
+        console.error(`Failed to scrape api words for ${charInput}:`, error);
+    }
+} 
+
+function spawnRedCharacterAt(x, y, currentScale = 1.0) {
+    // Generate simulated structural bounding strokes for "斬" so the convex hull engine works correctly
+    // 256x256 simple bounding box lines for "斬" structure safety
+    let surrogateStrokes = [
+        [[30, 30], [226, 30]],
+        [[226, 30], [226, 226]],
+        [[226, 226], [30, 226]],
+        [[30, 226], [30, 30]]
+    ];
+
+    // Find reference patterns if you want real vector data, otherwise fallback to surrogate
+    let matchingPattern = KanjiCanvas.refPatterns.find(p => p[0] === "斬");
+    let structuralPaths = matchingPattern && matchingPattern[2] && matchingPattern[2].length > 0 
+        ? matchingPattern[2] 
+        : surrogateStrokes;
+
+    const redBlock = new Rect(
+        x, 
+        y, 
+        structuralPaths,    
+        "斬", 
+        structuralPaths,   
+        currentScale,
+        true // treated as a system type block
+    );
+
+    // Apply properties to make it immunologically passive
+    redBlock.isRed = true;
+    redBlock.hasLanded = true; // Prevents drag-scaling or suspension if undesired
+
+    boxes.push(redBlock);
+} 
+
+async function spawnRandomSystemKanji() {
+    // Safety check: Wait for JSON patterns to load on startup before spawning
+    if (!KanjiCanvas.refPatterns || KanjiCanvas.refPatterns.length === 0) {
+        setTimeout(spawnRandomSystemKanji, 500);
+        return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * KanjiCanvas.refPatterns.length);
+    const selectedPattern = KanjiCanvas.refPatterns[randomIndex];
+    const characterString = selectedPattern[0];
+    const jsonStrokes = selectedPattern[2] || [];
+
+    console.log(`[System Try] Testing character: '${characterString}'`);
+
+    // --- 1. CHECK /KANJI/ ENDPOINT FIRST ---
+    try {
+        const kanjiResponse = await fetch(`https://kanjiapi.dev/v1/kanji/${encodeURIComponent(characterString)}`);
+        
+        if (!kanjiResponse.ok) {
+            console.warn(`[System Warning] Kanji endpoint failed for '${characterString}'. Trying a different character.`);
+            return spawnRandomSystemKanji(); // Force retry immediately
+        }
+
+        const data = await kanjiResponse.json();
+        
+        if (!kanjiDataDictionary[characterString]) {
+            kanjiDataDictionary[characterString] = [];
+        }
+
+        const processedReadings = [];
+        const parseAndAddReadings = (readingsList) => {
+            if (!readingsList) return;
+            readingsList.forEach(reading => {
+                if (reading.includes('.')) {
+                    const parts = reading.split('.');
+                    const kanjiPart = characterString + parts[1];
+                    const kanaPart = parts[0] + parts[1];
+                    processedReadings.push([kanjiPart, kanaPart]);
+                } else {
+                    processedReadings.push([characterString, reading]);
+                }
+            });
+        };
+
+        parseAndAddReadings(data.kun_readings);
+        parseAndAddReadings(data.on_readings);
+
+        processedReadings.forEach(wordPair => {
+            const alreadyExists = kanjiDataDictionary[characterString].some(w => w[0] === wordPair[0] && w[1] === wordPair[1]);
+            if (!alreadyExists) {
+                kanjiDataDictionary[characterString].push(wordPair);
+            }
+        });
+        
+    } catch (err) {
+        console.error(`[System Error] Error during kanji lookup for '${characterString}'. Trying a different character.`, err);
+        return spawnRandomSystemKanji();
+    }
+
+    // --- 2. FETCH /WORDS/ DATA ---
+    await fetchAndStoreKanjiData(characterString);
+
+    // --- 3. EVALUATE COMPOUND WORDS & ENFORCE THE "THIRD KANJI" RULE ---
+    let hasCompoundWords = false;
+    if (kanjiDataDictionary[characterString]) {
+        // Check if there is at least one word longer than 1 character
+        hasCompoundWords = kanjiDataDictionary[characterString].some(w => w[0].length > 1);
+    }
+
+    if (!hasCompoundWords) {
+        if (consecutiveNoWordsCount >= 2) {
+            console.warn(`[System Skip] '${characterString}' has no words and limit reached. Forcing retry for a word...`);
+            delete kanjiDataDictionary[characterString];
+            return spawnRandomSystemKanji();
+        } else {
+            console.log(`[System Info] '${characterString}' has no words. Incrementing limit count.`);
+            consecutiveNoWordsCount++;
+        }
+    } else {
+        console.log(`[System Info] '${characterString}' has compound words. Resetting limit count.`);
+        consecutiveNoWordsCount = 0; // Reset back to 0 if a valid word is found
+    }
+
+    console.log(`[System Spawn SUCCESS] '${characterString}' loaded.`);
+    
+    let randomX = Math.random() * (windowWidth - 100) + 50;
+    let spawnY = 80;  
+
+    let targetSize = 80; 
+    let blockScale = (targetSize / 380) * 1.5;
+
+    const systemBlock = new Rect(
+        randomX,
+        spawnY,
+        jsonStrokes, 
+        characterString,
+        jsonStrokes,
+        blockScale,
+        true 
+    );
+    
+    boxes.push(systemBlock);
+} 
+
+function resampleStroke(points, numPoints = 32) {
+    if (points.length <= 1) return points;
+    
+    let totalLength = 0;
+    for (let i = 1; i < points.length; i++) {
+        totalLength += dist(points[i-1][0], points[i-1][1], points[i][0], points[i][1]);
+    }
+    
+    let interval = totalLength / (numPoints - 1);
+    let newPoints = [points[0]];
+    let currentDist = 0;
+    
+    for (let i = 1; i < points.length; i++) {
+        let d = dist(points[i-1][0], points[i-1][1], points[i][0], points[i][1]);
+        while (currentDist + d >= interval) {
+            let ratio = (interval - currentDist) / d;
+            let x = points[i-1][0] + ratio * (points[i][0] - points[i-1][0]);
+            let y = points[i-1][1] + ratio * (points[i][1] - points[i-1][1]);
+            newPoints.push([x, y]);
+            currentDist -= interval;
+        }
+        currentDist += d;
+    }
+    while (newPoints.length < numPoints) newPoints.push(points[points.length - 1]);
+    return newPoints;
+}
+
+function setup() {
+    const canvas = createCanvas(windowWidth, windowHeight);
+    canvas.parent('canvas-parent');
+
+    engine = Engine.create();
+    world = engine.world;
+    ground = new Ground(windowWidth / 2, windowHeight - 15, windowWidth, 30);
+
+    KanjiCanvas.init(BACKEND_ID);
+    loadAndDecompressAllPatterns(); 
+
+    // --- CREATE LEFT & RIGHT RESPONSIVE STATIC WALLS ---
+    leftWall = Matter.Bodies.rectangle(
+        wallThickness - (physicalThickness / 2), 
+        windowHeight / 2, 
+        physicalThickness, 
+        windowHeight * 3, 
+        { isStatic: true, friction: 0.1, restitution: 0.5 }
+    );
+
+    // Right Wall inner edge sits exactly at x = windowWidth - 5
+    rightWall = Matter.Bodies.rectangle(
+        (windowWidth - wallThickness) + (physicalThickness / 2), 
+        windowHeight / 2, 
+        physicalThickness, 
+        windowHeight * 3, 
+        { isStatic: true, friction: 0.1, restitution: 0.5 }
+    );
+
+    Matter.Composite.add(engine.world, [leftWall, rightWall]); 
+
+    spawnRandomSystemKanji();
+    systemSpawnInterval = setInterval(spawnRandomSystemKanji, 10000);  
+}
+
+function updateContinuousScaling() {
+    if (!selectedBlock || !selectedBlock.body) return;
+
+    // Always maintain horizontal displacement tracking for all blocks
+    selectedBlock.dragX(pointerX);
+
+    // CRITICAL GUARD: Only execute gesture scaling if it's a white character we drew!
+    if (!selectedBlock.isUserDrawn) {
+        return; 
+    }
+
+    // ----------------------------------------------------
+    // Your smooth continuous scaling logic runs below here safely
+    // ----------------------------------------------------
+    const objectCenterY = selectedBlock.body.position.y;
+    const deltaY = objectCenterY - pointerY;
+    const sensitivity = 200; 
+
+    let targetScaleValue = 1.0 + (deltaY / sensitivity);
+
+    const minScaleLimit = 0.4;
+    const maxScaleLimit = 2.5;
+    targetScaleValue = Math.max(minScaleLimit, Math.min(maxScaleLimit, targetScaleValue));
+
+    let currentScale = selectedBlock.blockScale !== undefined ? selectedBlock.blockScale : (selectedBlock.scale || 1.0);
+    
+    if (currentScale !== targetScaleValue) {
+        let incrementalScaleFactor = targetScaleValue / currentScale;
+        
+        if (selectedBlock.blockScale !== undefined) selectedBlock.blockScale = targetScaleValue;
+        if (selectedBlock.scale !== undefined) selectedBlock.scale = targetScaleValue;
+        
+        if (selectedBlock.drawnWidth) selectedBlock.drawnWidth *= incrementalScaleFactor;
+        if (selectedBlock.drawnHeight) selectedBlock.drawnHeight *= incrementalScaleFactor;
+        if (selectedBlock.w) selectedBlock.w *= incrementalScaleFactor;
+        if (selectedBlock.h) selectedBlock.h *= incrementalScaleFactor;
+
+        Matter.Body.scale(selectedBlock.body, incrementalScaleFactor, incrementalScaleFactor);
+    }
+} 
+
+function draw() {
+    background(171, 193, 194);
+    Engine.update(engine);
+    updateContinuousScaling();
+
+    // --- ENFORCE WALL BOUNDARIES TO PREVENT DRAGGING THROUGH WALLS ---
+    for (let i = 0; i < boxes.length; i++) {
+        let b = boxes[i];
+        if (b.body && !b.isTriggeredForExplosion) {
+            let halfW = (b.drawnWidth || 50) / 2;
+            let minX = wallThickness + halfW;
+            let maxX = windowWidth - wallThickness - halfW;
+
+            // If the player forces the kanji past the left boundary, clamp it
+            if (b.body.position.x < minX) {
+                Matter.Body.setPosition(b.body, { x: minX, y: b.body.position.y });
+                if (b.body.velocity.x < 0) Matter.Body.setVelocity(b.body, { x: 0, y: b.body.velocity.y });
+            }
+            // If the player forces the kanji past the right boundary, clamp it
+            if (b.body.position.x > maxX) {
+                Matter.Body.setPosition(b.body, { x: maxX, y: b.body.position.y });
+                if (b.body.velocity.x > 0) Matter.Body.setVelocity(b.body, { x: 0, y: b.body.velocity.y });
+            }
+        }
+    } 
+
+    // --- 1. PRODUCING INTER-BODY PHYSICS & READING COLLISIONS ---
+    let boxesToRemove = new Set();
+    for (let i = 0; i < boxes.length; i++) {
+        let boxA = boxes[i];
+        
+        // ADD THIS LINE: Skip checking if this box is a passive red character
+        if (boxA.isRed) continue; 
+
+        if (boxA.isSystemSpawn) {
+            let vocabList = kanjiDataDictionary[boxA.img] || [];
+            for (let j = 0; j < boxes.length; j++) {
+                let boxB = boxes[j];
+                
+                // ADD THIS LINE TOO: Skip checking if the other body is red
+                if (boxB.isRed) continue;
+
+                if (!boxB.isSystemSpawn && !boxesToRemove.has(boxB)) {
+                    let collisionResult = Matter.SAT.collides(boxA.body, boxB.body); 
+                    
+                    if (collisionResult && collisionResult.collided) {
+                        const whiteChar = boxB.img;
+                        const normalizedUserInput = getBaseKana(whiteChar); 
+
+                        // --- MODE A: Active Pronunciation Sequence (Reading Mode Progress) ---
+                        if (boxA.isReadingMode && boxA.readingTargetString) {
+                            let expectedKana = boxA.readingTargetString[boxA.readingProgressIndex];
+                            
+                            if (normalizedUserInput === getBaseKana(expectedKana)) {
+                                boxA.readingProgressIndex++;
+                                
+                                // Generate bracket layout sequence: e.g., "(し)な"
+                                let completedPart = boxA.readingTargetString.substring(0, boxA.readingProgressIndex);
+                                let remainingPart = boxA.readingTargetString.substring(boxA.readingProgressIndex);
+                                
+                                boxA.displayText = `(${completedPart})${remainingPart}`;
+                                console.log(`[Reading Progress] '${whiteChar}' hit! Visual text updated to: ${boxA.displayText}`);
+                                
+                                let whitePatternMatch = KanjiCanvas.refPatterns.find(p => p[0] === whiteChar);
+                                let whiteStrokes = whitePatternMatch ? whitePatternMatch[2] : null;
+                                if (whiteStrokes) {
+                                    // Map raw arrays to property objects so they stay grey in the display loop
+                                    let flaggedWhiteStrokes = whiteStrokes.map(strokePath => ({
+                                        path: strokePath,
+                                        isAppended: true
+                                    }));
+                                    boxA.jsonStrokes = [...boxA.jsonStrokes, ...flaggedWhiteStrokes];
+                                }
+                                
+                                boxesToRemove.add(boxB);
+
+                                if (boxA.readingProgressIndex >= boxA.readingTargetString.length) {
+                                    console.log(`[Reading Complete] Fully cleared "${boxA.readingTargetString}"! Purging block.`);
+                                    boxesToRemove.add(boxA);
+                                    delete kanjiDataDictionary[boxA.img];
+                                }
+                            }
+                        } 
+                        // --- MODE B: Initialization (Black Block converting to Grey Reading Mode) ---
+                        else {
+                            let matchedItem = vocabList.find(item => {
+                                let reading = (item[1] && item[1] !== "") ? item[1] : item[0];
+                                return reading && getBaseKana(reading[0]) === normalizedUserInput;
+                            });
+
+                            if (matchedItem) {
+                                let readingTarget = (matchedItem[1] && matchedItem[1] !== "") ? matchedItem[1] : matchedItem[0];
+                                console.log(`[Reading Initialized] '${boxA.img}' matched spelling target: "${readingTarget}"`);
+                                
+                                boxA.isReadingMode = true;
+                                boxA.readingTargetString = readingTarget;
+                                boxA.readingProgressIndex = 1; // Mark index 0 as hit
+                                
+                                let completedPart = readingTarget.substring(0, 1);
+                                let remainingPart = readingTarget.substring(1);
+                                
+                                boxA.displayText = `(${completedPart})${remainingPart}`;
+                                kanjiDataDictionary[boxA.img] = [matchedItem];
+
+                                let whitePatternMatch = KanjiCanvas.refPatterns.find(p => p[0] === whiteChar);
+                                let whiteStrokes = whitePatternMatch ? whitePatternMatch[2] : null;
+                                if (whiteStrokes) {
+                                    // Map raw arrays to property objects so they stay grey in the display loop
+                                    let flaggedWhiteStrokes = whiteStrokes.map(strokePath => ({
+                                        path: strokePath,
+                                        isAppended: true
+                                    }));
+                                    boxA.jsonStrokes = [...boxA.jsonStrokes, ...flaggedWhiteStrokes];
+                                }
+
+                                boxesToRemove.add(boxB);
+                                
+                                if (boxA.readingProgressIndex >= boxA.readingTargetString.length) {
+                                    boxesToRemove.add(boxA);
+                                    delete kanjiDataDictionary[boxA.img];
+                                }
+                            }
+                            // --- MODE C: Standard Kanji Compound Combination Fallback ---
+                            else {
+                                const blackText = boxA.img;
+                                let orderDetermined = false;
+                                let combinedWordPattern = "";
+
+                                let testPatternAsPrefix = blackText + whiteChar;
+                                let validPrefixWords = vocabList.filter(item => item[0] && item[0].includes(testPatternAsPrefix));
+
+                                let testPatternAsSuffix = whiteChar + blackText;
+                                let validSuffixWords = vocabList.filter(item => item[0].includes(testPatternAsSuffix));
+
+                                if (validPrefixWords.length > 0) {
+                                    combinedWordPattern = testPatternAsPrefix;
+                                    kanjiDataDictionary[combinedWordPattern] = validPrefixWords;
+                                    orderDetermined = true;
+                                } else if (validSuffixWords.length > 0) {
+                                    combinedWordPattern = testPatternAsSuffix;
+                                    kanjiDataDictionary[combinedWordPattern] = validSuffixWords;
+                                    orderDetermined = true;
+                                }
+
+                                if (orderDetermined) {
+                                    let baselineWordsBeforeFiltering = kanjiDataDictionary[combinedWordPattern];
+                                    let filteredWords = baselineWordsBeforeFiltering.filter(item => item[0] !== combinedWordPattern);
+
+                                    kanjiDataDictionary[combinedWordPattern] = filteredWords;
+                                    if (combinedWordPattern !== blackText) {
+                                        delete kanjiDataDictionary[blackText];
+                                    }
+
+                                    boxA.img = combinedWordPattern;
+                                    boxA.displayText = combinedWordPattern; 
+
+                                    let whitePatternMatch = KanjiCanvas.refPatterns.find(p => p[0] === whiteChar);
+                                    let whiteStrokes = whitePatternMatch ? whitePatternMatch[2] : null;
+
+                                    if (whiteStrokes) {
+                                        // Standard compound merges default to flat arrays or standard layout handling
+                                        if (combinedWordPattern.startsWith(whiteChar)) {
+                                            boxA.jsonStrokes = [...whiteStrokes, ...boxA.jsonStrokes];
+                                        } else {
+                                            boxA.jsonStrokes = [...boxA.jsonStrokes, ...whiteStrokes];
+                                        }
+                                    }
+
+                                    boxesToRemove.add(boxB);
+
+                                    if (filteredWords.length === 0) {
+                                        boxesToRemove.add(boxA);
+                                        delete kanjiDataDictionary[combinedWordPattern];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // --- 2. CLEAR DISAPPEARING BLOCKS FROM RETRIEVAL MATRIX ---
+    if (boxesToRemove.size > 0) {
+        // We only want ONE red character to spawn per match, exactly at the black character's position
+        let blackCharacterBlock = null;
+        
+        boxesToRemove.forEach(disappearingBlock => {
+            if (disappearingBlock.isSystemSpawn) {
+                blackCharacterBlock = disappearingBlock;
+            }
+            // Remove all matched blocks from the physics engine
+            if (disappearingBlock.body) {
+                Matter.Composite.remove(engine.world, disappearingBlock.body);
+            }
+        });
+
+        // If we found the black character, spawn the single red "斬" right where it was!
+        if (blackCharacterBlock && blackCharacterBlock.body) {
+            let targetX = blackCharacterBlock.body.position.x;
+            let targetY = blackCharacterBlock.body.position.y;
+            let targetScale = blackCharacterBlock.scale || 1.0;
+
+            spawnRedCharacterAt(targetX, targetY, targetScale);
+        }
+
+        // Reconstruct the remaining tracking matrix
+        boxes = boxes.filter(b => !boxesToRemove.has(b));
+    } 
+
+    // --- 3. RENDERING BACKGROUND CHARACTER HINTS ---
+    for (let i = 0; i < boxes.length; i++) {
+        let currentBox = boxes[i];
+        
+        if (currentBox.isReadingMode) {
+            stroke(120, 120, 120, 40); 
+        } else {
+            stroke(255, 255, 255, 30); 
+        }
+        
+        strokeWeight(3);
+        noFill();
+        
+        if (currentBox.jsonStrokes && currentBox.jsonStrokes.length > 0) {
+            push();
+            translate(currentBox.body.position.x, currentBox.body.position.y);
+            rotate(currentBox.body.angle);
+            
+            currentBox.jsonStrokes.forEach(strokeObj => {
+                let points = strokeObj.path || strokeObj; 
+                beginShape();
+                points.forEach(vertexPoint => {
+                    let localX = (vertexPoint[0] - 128) * (currentBox.drawnWidth / 256) * 1.6;
+                    let localY = (vertexPoint[1] - 128) * (currentBox.drawnHeight / 256);
+                    vertex(localX, localY);
+                });
+                endShape();
+            });
+            pop();
+        }
+    }
+
+    // =================================================================
+    // START INSERTING HERE: 3. Handle the Timer and Spawning Inside draw()
+    // =================================================================
+    let loopTime = millis();
+    for (let i = boxes.length - 1; i >= 0; i--) {
+        let b = boxes[i];
+        
+        // --- CHANGED: Now waits for 2000ms (2 seconds) ---
+        if (b.isTriggeredForExplosion && (loopTime - b.explosionTimerStart > 2000)) {
+            
+            if (b.jsonStrokes && b.jsonStrokes.length > 0) {
+                let bx = b.body.position.x;
+                let by = b.body.position.y;
+                let bAngle = b.body.angle;
+                
+                b.jsonStrokes.forEach(singleStroke => {
+                    // Calculate the final drifted position so the physical pieces 
+                    // spawn exactly where the animation left off
+                    let driftDir = singleStroke.splitSide || 1;
+                    let localDrift = 35 * driftDir;
+                    
+                    // Convert local drift to world space using the body's rotation matrix
+                    let worldDx = localDrift * cos(bAngle) - localDrift * sin(bAngle);
+                    let worldDy = localDrift * sin(bAngle) + localDrift * cos(bAngle);
+
+                    let piece = new SlashedPiece(
+                        bx + worldDx, // Spawns shifted outward
+                        by + worldDy, // Spawns shifted outward
+                        singleStroke, 
+                        bAngle, 
+                        b.drawnWidth, 
+                        b.drawnHeight, 
+                        b.scale
+                    );
+                    slashedPieces.push(piece);
+                });
+            }
+
+            // Remove it from the world matrix
+            if (b.body) {
+                Matter.Composite.remove(engine.world, b.body);
+            }
+            boxes.splice(i, 1);
+            console.log("💥 Explosion triggered after 2-second split!");
+        }
+    } 
+
+    // --- 4. ENGINE SIMULATION & FOREGROUND BOX ENTITIES RENDER ---
+    // --- NEW: SIMULATE, DRAW, AND DESPAWN EXPLODED STROKE FRAGMENTS ---
+    let currentTime = millis();
+    for (let i = slashedPieces.length - 1; i >= 0; i--) {
+        let piece = slashedPieces[i];
+        
+        // If 2 seconds (2000 milliseconds) have passed since spawn time, clear it
+        if (currentTime - piece.spawnTime > 2000) {
+            if (piece.body) {
+                Matter.Composite.remove(engine.world, piece.body);
+            }
+            slashedPieces.splice(i, 1);
+        } else {
+            piece.display();
+        }
+    } 
+
+    // --- START SMOKE EFFECT LOGIC ---
+    for (let i = 0; i < boxes.length; i++) {
+        // Example inside your p5.js draw loop or update loop
+        // --- Inside your loop iterating through boxes ---
+        let b = boxes[i]; 
+
+        if (b.isRed && !b.isTriggeredForExplosion) { // Slightly more frequent for "filling"
+            // Inside your loop
+            let angle = b.body.angle;
+            // ... inside your loop 
+            let hw = (b.drawnWidth || 50) / 2;
+            let hh = (b.drawnHeight || 50) / 2;
+
+            // Shrink the spawn area to be closer to the center (e.g., 50% of the size)
+            let shrinkFactor = 0.5; 
+
+            // 1. Pick a random side, but use the shrunk dimensions
+            let side = floor(random(4));
+            let lx, ly;
+
+            if (side === 0) { lx = random(-hw * shrinkFactor, hw * shrinkFactor); ly = -hh * shrinkFactor; } 
+            else if (side === 1) { lx = random(-hw * shrinkFactor, hw * shrinkFactor); ly = hh * shrinkFactor; } 
+            else if (side === 2) { lx = -hw * shrinkFactor; ly = random(-hh * shrinkFactor, hh * shrinkFactor); } 
+            else { lx = hw * shrinkFactor; ly = random(-hh * shrinkFactor, hh * shrinkFactor); }
+
+            // ... (keep your rotation logic exactly as is)            // Right
+
+            // 2. Rotate the local point (lx, ly) by the body's angle
+            let rotatedX = (lx * Math.cos(angle)) - (ly * Math.sin(angle));
+            let rotatedY = (lx * Math.sin(angle)) + (ly * Math.cos(angle));
+
+            // 3. Final spawn position
+            let spawnX = b.body.position.x + rotatedX;
+            let spawnY = b.body.position.y + rotatedY;
+
+            // 5. Create particle
+            let smokeColor = [255, 150, 150];  
+            let parentScale = b.blockScale || 1.0; 
+
+            // 4. Create particle
+            smokeParticles.push(new SmokeParticle(spawnX, spawnY, smokeColor, b.blockScale || 1.0));
+        }
+    }
+
+    // Update and draw the active smoke particles
+    for (let i = smokeParticles.length - 1; i >= 0; i--) {
+        let p = smokeParticles[i];
+        p.update();
+        
+        if (p.life <= 0) {
+            smokeParticles.splice(i, 1);
+        } else {
+            p.display();
+        }
+    }
+    // --- END SMOKE EFFECT LOGIC ---
+
+    // (Your existing box rendering loop goes immediately below this!)
+    // for (let i = 0; i < boxes.length; i++) { ... boxes[i].display(); }
+
+    for (let i = 0; i < boxes.length; i++) { 
+        if (boxes[i].isSuspended) {
+            Matter.Body.setVelocity(boxes[i].body, { x: 0, y: 0 });
+            Matter.Body.setAngularVelocity(boxes[i].body, 0);
+        }
+        
+        boxes[i].display(); 
+    }
+    ground.display();
+
+    // --- RENDERING STATIC GREY SIDE WALLS (EXACTLY 5PX) ---
+    push();
+    fill(130, 135, 136); 
+    noStroke();
+    rectMode(CORNER);
+    
+    // Left Visual Wall (0 to 5)
+    rect(0, -windowHeight, wallThickness, windowHeight * 3);
+    
+    // Right Visual Wall (windowWidth - 5 to windowWidth)
+    rect(windowWidth - wallThickness, -windowHeight, wallThickness, windowHeight * 3);
+    pop(); 
+
+    // --- 5. RENDER PLAYER PAINTING SESSION PATHS ---
+    stroke(255, 153, 0); 
+    strokeWeight(6); 
+    strokeCap(ROUND); 
+    strokeJoin(ROUND); 
+    noFill();
+    
+    sessionsStrokes.forEach(strokeData => {
+        beginShape();
+        strokeData.forEach(pt => vertex(pt[0], pt[1]));
+        endShape();
+    });
+
+    if (currentStrokePoints.length > 0) {
+        beginShape();
+        currentStrokePoints.forEach(pt => vertex(pt[0], pt[1]));
+        endShape();
+    }
+
+    // --- 6. VISUAL OVERLAYS FOR ACTIVE SLICING ---
+    if (isCuttingMode) {
+        // Draw only the laser-sharp red line reflecting the active slash trajectory vector path
+        if (typeof cutStartPoint !== 'undefined' && cutStartPoint && cutEndPoint) {
+            push();
+            stroke(255, 30, 30);
+            strokeWeight(6);
+            strokeCap(ROUND);
+            line(cutStartPoint.x, cutStartPoint.y, cutEndPoint.x, cutEndPoint.y);
+            pop();
+        }
+    }
+} 
+
+function getDynamicStrokeBounds() {
+    let allPoints = sessionsStrokes.flat().concat(currentStrokePoints);
+    if (allPoints.length === 0) return null; 
+
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    allPoints.forEach(pt => {
+        if (pt[0] < minX) minX = pt[0]; if (pt[0] > maxX) maxX = pt[0];
+        if (pt[1] < minY) minY = pt[1]; if (pt[1] > maxY) maxY = pt[1];
+    });
+
+    let padding = 15;
+    let rawWidth = maxX - minX;
+    let rawHeight = maxY - minY;
+    
+    let width = Math.max(rawWidth + padding * 2, 40);
+    let height = Math.max(rawHeight + padding * 2, 40);
+    
+    if (rawWidth > rawHeight * 2) {
+        height = width; 
+        let centerY = minY + rawHeight / 2;
+        minY = centerY - height / 2;
+        maxY = centerY + height / 2;
+    }
+
+    let size = Math.max(width, height);
+
+    return { 
+        x: minX - padding, 
+        y: minY - padding, 
+        width: width, 
+        height: height,
+        size: size,
+        centerX: minX + (maxX - minX) / 2,
+        centerY: minY + (maxY - minY) / 2,
+        maxY: maxY,
+        minY: minY 
+    };
+} 
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+    
+    if (leftWall) {
+        Matter.Body.setPosition(leftWall, { 
+            x: wallThickness - (physicalThickness / 2), 
+            y: windowHeight / 2 
+        });
+    }
+    
+    if (rightWall) {
+        Matter.Body.setPosition(rightWall, { 
+            x: (windowWidth - wallThickness) + (physicalThickness / 2), 
+            y: windowHeight / 2 
+        });
+    }
+}
+
+// ==========================================
+// 5. DRAG INTERACTION HANDLERS
+// ==========================================
+let lastGrabTime = 0;
+let lastGrabbedBox = null;
+
+function isUiActive(nativeEvent) { 
+    if (!nativeEvent) return false;
+
+    if ($(nativeEvent.target).closest('#results-dock').length > 0 || $(nativeEvent.target).closest('#word-popup-overlay').length > 0 || $(nativeEvent.target).closest('#stroke-teaching-popup').length > 0 || $(nativeEvent.target).closest('#global-abort-btn').length > 0) {
+        return true;
+    }
+    
+    if ($('#word-popup-overlay').is(':visible') || $('#results-dock').is(':visible') || $('#stroke-teaching-popup').is(':visible') || $('#global-abort-btn').is(':visible')) {
+        if ($(nativeEvent.target).closest('#results-dock').length > 0 || $(nativeEvent.target).closest('#word-popup-overlay').length > 0 || $(nativeEvent.target).closest('#stroke-teaching-popup').length > 0 || $(nativeEvent.target).closest('#global-abort-btn').length > 0) {
+            return true;
+        }
+    }
+    return false;
+} 
+
+function handleStart(x, y, nativeEvent) {
+    if (isUiActive(nativeEvent)) return;
+
+    for (let i = boxes.length - 1; i >= 0; i--) {
+        let box = boxes[i];
+        if (box.containsPoint(x, y)) {
+            
+            if (box.isSystemSpawn) {
+                let currentTime = millis(); 
+                
+                if (lastGrabbedBox === box && (currentTime - lastGrabTime) < 500) {
+                    clearActiveDrawingSession(); 
+                    showWordPopup(box.img);      
+                    
+                    lastGrabTime = 0;
+                    lastGrabbedBox = null;
+                    return; 
+                } else {
+                    lastGrabTime = currentTime;
+                    lastGrabbedBox = box;
+                }
+            }
+
+            activeSuspendedBlock = box;
+            box.suspend();
+            return; 
+        }
+    }
+
+    for (let i = boxes.length - 1; i >= 0; i--) {
+        if (boxes[i].isSuspended && !boxes[i].hasLanded && Math.abs(y - boxes[i].body.position.y) < 40) {
+            activeSuspendedBlock = boxes[i];
+            activeSuspendedBlock.dragX(x); 
+            return;
+        }
+    } 
+
+    const dock = document.getElementById('results-dock');
+
+    // Update layout structure string assignment:
+    dock.innerHTML = `
+        <div class="dock-title-bar">
+            <button class="close-btn" onclick="document.getElementById('results-dock').style.display='none';">×</button>
+        </div>
+        <div class="dock-scroll-container" id="dock-scroll-container-items">
+            </div>
+    `;
+    dock.style.display = 'none';
+    
+    currentStrokePoints = [[x, y]];
+} 
+
+function handleMove(x, y, nativeEvent) {
+    if ($('#word-popup-overlay').is(':visible') || $('#results-dock').is(':visible') || $('#stroke-teaching-popup').is(':visible') || $('#global-abort-btn').is(':visible')) {
+        if (!nativeEvent) return;
+        if ($(nativeEvent.target).closest('#results-dock').length > 0 || $(nativeEvent.target).closest('#word-popup-overlay').length > 0 || $(nativeEvent.target).closest('#stroke-teaching-popup').length > 0 || $(nativeEvent.target).closest('#global-abort-btn').length > 0) {
+            return;
+        }
+    }
+
+    if (activeSuspendedBlock) {
+        if (!activeSuspendedBlock.hasLanded) {
+            activeSuspendedBlock.dragX(x);
+        }
+        return;
+    }
+
+    if (currentStrokePoints.length === 0) return;
+    const lastPoint = currentStrokePoints[currentStrokePoints.length - 1];
+    if (lastPoint && dist(x, y, lastPoint[0], lastPoint[1]) < 3) return;
+    currentStrokePoints.push([x, y]);
+}
+
+function handleEnd() {
+    if (activeSuspendedBlock) {
+        activeSuspendedBlock.release();
+        activeSuspendedBlock = null;
+        return;
+    }
+
+    if (currentStrokePoints.length === 0) return;
+    sessionsStrokes.push(currentStrokePoints);
+    currentStrokePoints = [];
+    evaluateHandwrittenGestures();
+} 
+
+function mousePressed(e) { 
+    if (isUiActive(e)) return true; 
+    if (touches.length === 0) {
+        handleStart(mouseX, mouseY, e);
+    }
+}
+
+function mouseDragged(e) {
+    if (isCuttingMode) {
+        return false; // Blocks the drawing inputs from generating paths
+    }
+    if (isUiActive(e)) return true;
+    if (touches.length === 0) {
+        handleMove(mouseX, mouseY, e);
+    }
+} 
+
+function mouseReleased() {
+    handleEnd();
+}
+
+function touchStarted(e) {
+    if (isUiActive(e)) return true; 
+    if (touches.length > 0) {
+        handleStart(touches[0].x, touches[0].y, e);
+    }
+    return false; 
+}
+
+function touchMoved(e) {
+     if (isCuttingMode) {
+        return false; // Blocks the drawing inputs from generating paths
+    } 
+    if (isUiActive(e)) return true;
+    if (touches.length > 0) {
+        handleMove(touches[0].x, touches[0].y, e);
+    }
+    return false; 
+}
+
+function touchEnded(e) {
+    handleEnd();
+    return true;
+} 
+
+function evaluateHandwrittenGestures() {
+    let bounds = getDynamicStrokeBounds();
+    if (!bounds) return; 
+
+    let processedStrokes = sessionsStrokes.map(stroke => resampleStroke(stroke));
+
+    let normalizedPattern = processedStrokes.map(stroke => {
+        return stroke.map(pt => {
+            let normX = ((pt[0] - bounds.x) / bounds.size) * 256;
+            let normY = ((pt[1] - bounds.y) / bounds.size) * 256;
+            return [normX, normY];
+        });
+    }); 
+
+    KanjiCanvas["recordedPattern_" + BACKEND_ID] = normalizedPattern;
+    const candidates = KanjiCanvas.recognize(BACKEND_ID);
+    updateFloatingSelectionDock(candidates, bounds);
+} 
+
+function updateFloatingSelectionDock(candidateList, bounds) {
+    const dock = document.getElementById('results-dock');
+    if (!candidateList || candidateList.length === 0) {
+        dock.style.display = 'none';
+        return;
+    }
+
+    let strokeWidth = bounds.width;
+    if (isNaN(strokeWidth) || strokeWidth <= 0) {
+        strokeWidth = 110; 
+    }
+    
+    let targetWidth = strokeWidth + 40; 
+    let finalWidth = Math.max(165, targetWidth);
+    if (finalWidth > windowWidth - 40) finalWidth = windowWidth - 40; 
+    
+    // Set up outer container boundaries dynamically
+    dock.style.setProperty('display', 'flex', 'important'); 
+    dock.style.setProperty('flex-direction', 'column', 'important');
+    dock.style.setProperty('position', 'absolute', 'important');
+    dock.style.setProperty('width', `${finalWidth}px`, 'important');
+    dock.style.setProperty('min-width', `${finalWidth}px`, 'important');
+    dock.style.setProperty('max-width', `${finalWidth}px`, 'important');
+    dock.style.setProperty('height', '110px', 'important'); 
+    dock.style.setProperty('min-height', '110px', 'important');
+    dock.style.setProperty('max-height', '110px', 'important');
+    dock.style.setProperty('overflow', 'hidden', 'important'); 
+    dock.style.setProperty('padding', '4px', 'important'); 
+
+    // Build the Retro Windows UI layout frames - Added id to title bar for drag events
+    let htmlContent = `
+        <div class="dock-title-bar" id="dock-drag-handle" style="display: flex !important; justify-content: flex-end !important; align-items: center !important; background: #475569 !important; padding: 4px !important; height: 24px !important; min-height: 24px !important; max-height: 24px !important; box-sizing: border-box !important; user-select: none !important; width: 100% !important; cursor: move !important;">
+            <button class="close-btn" 
+                style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 16px !important; height: 16px !important; background: #cbd5e1 !important; color: #000000 !important; border: 2px solid !important; border-color: #ffffff #7f8c8d #7f8c8d #ffffff !important; font-size: 11px !important; font-family: sans-serif !important; font-weight: bold !important; cursor: pointer !important; padding: 0 !important; margin: 0 !important; line-height: 1 !important;"
+                ontouchstart="clearActiveDrawingSession()" 
+                onclick="clearActiveDrawingSession()">×</button>
+        </div>
+        <div class="dock-scroll-container" 
+            style="display: flex !important; gap: 10px !important; white-space: nowrap !important; overflow-x: auto !important; overflow-y: hidden !important; -webkit-overflow-scrolling: touch !important; padding: 6px 4px !important; background: #ffffff !important; border: 2px inset #94a3b8 !important; box-sizing: border-box !important; align-items: center !important; height: 74px !important; min-height: 74px !important; max-height: 74px !important; width: 100% !important;">
+    `;
+    
+    const topTenMatches = candidateList.slice(0, 10);
+    
+    topTenMatches.forEach(character => {
+        htmlContent += `<button class="kanji-btn" 
+            data-char="${character}"
+            style="display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 1 0 auto !important; min-width: 52px !important; height: 52px !important; max-height: 52px !important; background: #475569 !important; color: #ffffff !important; border: 2px solid !important; border-color: #94a3b8 !important; border-radius: 4px !important; font-size: 24px !important; font-weight: bold !important; cursor: pointer !important; user-select: none !important; padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;"
+            ontouchstart="this.dataset.moved='false'; this.dataset.startX=event.touches[0].clientX; this.dataset.startY=event.touches[0].clientY;"
+            ontouchmove="if(Math.abs(event.touches[0].clientX - parseFloat(this.dataset.startX)) > 6 || Math.abs(event.touches[0].clientY - parseFloat(this.dataset.startY)) > 6) { this.dataset.moved='true'; }"
+            ontouchend="if(this.dataset.moved !== 'true') { triggerSelectedBlockSpawn('${character}'); } event.preventDefault();"
+            onclick="if(event.screenX === 0 || this.dataset.moved !== 'true') { triggerSelectedBlockSpawn('${character}'); }">${character}</button>`;
+    });
+    
+    htmlContent += `</div>`;
+    dock.innerHTML = htmlContent; 
+
+    const scrollWrapper = dock.querySelector('.dock-scroll-container');
+    if (scrollWrapper) scrollWrapper.scrollLeft = 0;
+
+    // --- INITIAL CENTERING CALCULATIONS ---
+    let centerPos = bounds.centerX;
+    if (isNaN(centerPos)) centerPos = windowWidth / 2;
+    
+    let calculatedLeft = centerPos - (finalWidth / 2);
+    let topPos = bounds.maxY + 55; 
+    if (isNaN(topPos)) topPos = windowHeight - 120; 
+
+    let currentDrawingSize = Math.max(bounds.width, bounds.height);
+    if (currentDrawingSize < 150) {
+        let scaleFactor = (150 - currentDrawingSize) / 100; 
+        topPos += (scaleFactor * 85); 
+    } 
+
+    calculatedLeft = Math.max(10, Math.min(calculatedLeft, windowWidth - finalWidth - 10));
+    if (topPos + 110 > windowHeight) {
+        topPos = (bounds.minY || 100) - 110 - 15; 
+    }
+
+    dock.style.setProperty('left', `${calculatedLeft}px`, 'important');
+    dock.style.setProperty('top', `${topPos}px`, 'important'); 
+
+    // --- NEW: RETRO WINDOW DRAG MECHANICS ---
+    const dragHandle = document.getElementById('dock-drag-handle');
+    let isDragging = false;
+    let startX, startY, initialLeft, initialTop;
+
+    function startDrag(clientX, clientY) {
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        initialLeft = parseFloat(dock.style.left);
+        initialTop = parseFloat(dock.style.top);
+    }
+
+    function doDrag(clientX, clientY, rawEvent) {
+        if (!isDragging) return;
+        
+        // SAFE PREVENT: Only stop scrolling behavior if the browser flags it as cancelable
+        if (rawEvent && rawEvent.cancelable) {
+            rawEvent.preventDefault();
+        }
+
+        let deltaX = clientX - startX;
+        let deltaY = clientY - startY;
+        
+        let newLeft = initialLeft + deltaX;
+        let newTop = initialTop + deltaY;
+
+        // Keep window cleanly inside viewport limits
+        newLeft = Math.max(0, Math.min(newLeft, windowWidth - finalWidth));
+        newTop = Math.max(0, Math.min(newTop, windowHeight - 110));
+
+        dock.style.setProperty('left', `${newLeft}px`, 'important');
+        dock.style.setProperty('top', `${newTop}px`, 'important');
+    }
+
+    function stopDrag() {
+        isDragging = false;
+    }
+
+    // Touch Event Listeners (Mobile Phones)
+    dragHandle.addEventListener('touchstart', (e) => {
+        if (e.target.classList.contains('close-btn')) return; // Don't drag if tapping X button
+        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    // FIXED: Explicitly set passive: false so the browser knows we want to control touch intercepts cleanly
+    window.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            doDrag(e.touches[0].clientX, e.touches[0].clientY, e);
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchend', stopDrag, { passive: true });
+
+    // Mouse Event Listeners (Desktop Testing)
+    dragHandle.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('close-btn')) return;
+        startDrag(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) doDrag(e.clientX, e.clientY, e);
+    });
+
+    window.addEventListener('mouseup', stopDrag); 
+} 
+
+function clearActiveDrawingSession() {
+    sessionsStrokes = [];
+    currentStrokePoints = [];
+    KanjiCanvas.erase(BACKEND_ID);
+    
+    const dock = document.getElementById('results-dock');
+    dock.style.display = 'none';
+    dock.innerHTML = '';
+} 
+
+function triggerSelectedBlockSpawn(selectedCharacter) {
+    if (sessionsStrokes.length === 0) return;
+
+    let bounds = getDynamicStrokeBounds();
+    if (!bounds) return;
+
+    const blockScale = (bounds.size / 380) * 1.5; 
+
+    let matchingPattern = KanjiCanvas.refPatterns.find(p => p[0] === selectedCharacter);
+    let jsonStrokes = matchingPattern ? matchingPattern[2] : null;
+    let structuralPaths = jsonStrokes && jsonStrokes.length > 0 ? jsonStrokes : sessionsStrokes;
+
+    // User drawn characters drop with custom dimensions and layout paths
+    const spawnedBlock = new Rect(
+        bounds.centerX, 
+        bounds.centerY, 
+        sessionsStrokes,    
+        selectedCharacter, 
+        structuralPaths,   
+        blockScale,
+        false
+    );
+
+    // ADD THIS LINE RIGHT HERE:
+    spawnedBlock.isUserDrawn = true;
+    
+    boxes.push(spawnedBlock); 
+
+    sessionsStrokes = [];
+    KanjiCanvas.erase(BACKEND_ID);
+    
+    const dock = document.getElementById('results-dock');
+    dock.style.display = 'none';
+    dock.innerHTML = '';
+} 
+
+function loadAndDecompressAllPatterns() {
+    JSON_FILES.forEach(fileName => {
+        fetch(fileName)
+            .then(res => { if (!res.ok) throw new Error(); return res.json(); })
+            .then(jsonData => {
+                for (const char in jsonData) {
+                    if (Object.prototype.hasOwnProperty.call(jsonData, char)) {
+                        KanjiCanvas.refPatterns.push([char, jsonData[char].length, jsonData[char]]);
+                    }
+                }
+            })
+            .catch(err => console.error("Database asset stream error:", err));
+    });
+}
+</script>
+
+</body>
+</html> 
