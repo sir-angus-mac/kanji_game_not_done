@@ -16,7 +16,7 @@
 
 **【 リンク 】**
 ぜひ遊んでみてください！
-🔗 https://mii-toss.web.app/
+[🔗 https://thekanjigame.web.app/](https://thekanjigame.web.app/)
 （スマホでのプレイがおすすめですが、パソコンからでもOK！）
 
 ### （まだ完成版ではありません）。
